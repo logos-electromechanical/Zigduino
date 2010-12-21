@@ -1,0 +1,19 @@
+(c) Logos Electromechanical LLC 2010
+Licensed under CC-BY-SA 3.0 
+
+This is the software required to run the Zigduino, from Logos Electromechanical LLC.
+The Zigduino is a shield compatible Arduino clone based around the Atmega128RFA1. 
+This package contains the following elements:
+
+-- 	ported versions of the arduino-0021 bootloader and core libraries. Tone.cpp 
+	has not yet been ported, however.
+
+-- 	WinAVR-2010010; the version of this package provided with the normal Arduino 
+	install is too old to support the Atmega128RFA1. users on Mac and Linux must
+	do this by hand -- avr-gcc-4.3.2 and libc-1.6.7
+
+-- 	Board abstraction files for Atmel's MAC package 
+	(http://atmel.com/dyn/products/tools_card.asp?tool_id=4675)
+	
+	
+See INSTALL for installation instruction.

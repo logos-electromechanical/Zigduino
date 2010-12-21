@@ -1,0 +1,63 @@
+<html lang="en">
+<head>
+<title>Configuration File - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="prev" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation" title="Terminal Mode Operation">
+<link rel="next" href="Programmer-Specific-Information.html#Programmer-Specific-Information" title="Programmer Specific Information">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Configuration-File"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Programmer-Specific-Information.html#Programmer-Specific-Information">Programmer Specific Information</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation">Terminal Mode Operation</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
+<hr><br>
+</div>
+
+<h2 class="chapter">4 Configuration File</h2>
+
+<p class="noindent">AVRDUDE reads a configuration file upon startup which describes all of
+the parts and programmers that it knows about.  The advantage of this is
+that if you have a chip that is not currently supported by AVRDUDE, you
+can add it to the configuration file without waiting for a new release
+of AVRDUDE.  Likewise, if you have a parallel port programmer that is
+not supported by AVRDUDE, chances are good that you can copy and
+existing programmer definition, and with only a few changes, make your
+programmer work with AVRDUDE.
+
+   <p>AVRDUDE first looks for a system wide configuration file in a platform
+dependent location.  On Unix, this is usually
+<code>/usr/local/etc/avrdude.conf</code>, while on Windows it is usally in the
+same location as the executable file.  The name of this file can be
+changed using the <span class="option">-C</span> command line option.  After the system wide
+configuration file is parsed, AVRDUDE looks for a per-user configuration
+file to augment or override the system wide defaults.  On Unix, the
+per-user file is <code>.avrduderc</code> within the user's home directory.  On
+Windows, this file is the <code>avrdude.rc</code> file located in the same
+directory as the executable.
+
+<ul class="menu">
+<li><a accesskey="1" href="AVRDUDE-Defaults.html#AVRDUDE-Defaults">AVRDUDE Defaults</a>
+<li><a accesskey="2" href="Programmer-Definitions.html#Programmer-Definitions">Programmer Definitions</a>
+<li><a accesskey="3" href="Part-Definitions.html#Part-Definitions">Part Definitions</a>
+<li><a accesskey="4" href="Other-Notes.html#Other-Notes">Other Notes</a>
+</ul>
+
+<!-- Node -->
+</body></html>
+

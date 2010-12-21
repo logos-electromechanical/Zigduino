@@ -1,0 +1,68 @@
+<html lang="en">
+<head>
+<title>Programmers accepting extended parameters - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Command-Line-Options.html#Command-Line-Options" title="Command Line Options">
+<link rel="prev" href="Option-Descriptions.html#Option-Descriptions" title="Option Descriptions">
+<link rel="next" href="Example-Command-Line-Invocations.html#Example-Command-Line-Invocations" title="Example Command Line Invocations">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Programmers-accepting-extended-parameters"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Example-Command-Line-Invocations.html#Example-Command-Line-Invocations">Example Command Line Invocations</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Option-Descriptions.html#Option-Descriptions">Option Descriptions</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Command-Line-Options.html#Command-Line-Options">Command Line Options</a>
+<hr><br>
+</div>
+
+<h3 class="section">2.2 Programmers accepting extended parameters</h3>
+
+     <dl>
+<dt><code>JTAG ICE mkII</code><dt><code>AVR Dragon</code><dd>
+When using the JTAG ICE mkII or AVR Dragon in JTAG mode, the
+following extended parameter is accepted:
+          <dl>
+<dt><span class="samp">jtagchain=UB,UA,BB,BA</span><dd>Setup the JTAG scan chain for <var>UB</var> units before, <var>UA</var> units
+after, <var>BB</var> bits before, and <var>BA</var> bits after the target AVR,
+respectively. 
+Each AVR unit within the chain shifts by 4 bits. 
+Other JTAG units might require a different bit shift count. 
+</dl>
+
+     <br><dt><code>AVR910</code><dd>
+The AVR910 programmer type accepts the following extended parameter:
+          <dl>
+<dt><span class="samp">devcode=VALUE</span><dd>Override the device code selection by using <var>VALUE</var>
+as the device code. 
+The programmer is not queried for the list of supported
+device codes, and the specified <var>VALUE</var>
+is not verified but used directly within the
+<code>T</code> command sent to the programmer. 
+<var>VALUE</var> can be specified using the conventional number notation of the
+C programming language. 
+<br><dt><span class="samp">no_blockmode</span><dd>Disables the default checking for block transfer capability. 
+Use
+<span class="samp">no_blockmode</span> only if your <span class="samp">AVR910</span>
+programmer creates errors during initial sequence. 
+</dl>
+
+</dl>
+
+<!-- Node -->
+</body></html>
+

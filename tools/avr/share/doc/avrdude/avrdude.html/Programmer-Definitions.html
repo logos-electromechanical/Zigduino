@@ -1,0 +1,55 @@
+<html lang="en">
+<head>
+<title>Programmer Definitions - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Configuration-File.html#Configuration-File" title="Configuration File">
+<link rel="prev" href="AVRDUDE-Defaults.html#AVRDUDE-Defaults" title="AVRDUDE Defaults">
+<link rel="next" href="Part-Definitions.html#Part-Definitions" title="Part Definitions">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Programmer-Definitions"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Part-Definitions.html#Part-Definitions">Part Definitions</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="AVRDUDE-Defaults.html#AVRDUDE-Defaults">AVRDUDE Defaults</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Configuration-File.html#Configuration-File">Configuration File</a>
+<hr><br>
+</div>
+
+<h3 class="section">4.2 Programmer Definitions</h3>
+
+<p class="noindent">The format of the programmer definition is as follows:
+
+<pre class="smallexample">     programmer
+         id     = &lt;id1&gt; [, &lt;id2&gt; [, &lt;id3&gt;] ...] ;  # &lt;idN&gt; are quoted strings
+         desc     = &lt;description&gt; ;                  # quoted string
+         type     = par | stk500 ;                   # programmer type
+         baudrate = &lt;num&gt; ;                          # baudrate for serial ports
+         vcc      = &lt;num1&gt; [, &lt;num2&gt; ... ] ;         # pin number(s)
+         reset    = &lt;num&gt; ;                          # pin number
+         sck      = &lt;num&gt; ;                          # pin number
+         mosi     = &lt;num&gt; ;                          # pin number
+         miso     = &lt;num&gt; ;                          # pin number
+         errled   = &lt;num&gt; ;                          # pin number
+         rdyled   = &lt;num&gt; ;                          # pin number
+         pgmled   = &lt;num&gt; ;                          # pin number
+         vfyled   = &lt;num&gt; ;                          # pin number
+       ;
+</pre>
+   <!-- Node -->
+</body></html>
+

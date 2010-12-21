@@ -1,0 +1,71 @@
+<html lang="en">
+<head>
+<title>Instruction Format - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Part-Definitions.html#Part-Definitions" title="Part Definitions">
+<link rel="prev" href="Part-Definitions.html#Part-Definitions" title="Part Definitions">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Instruction-Format"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="Part-Definitions.html#Part-Definitions">Part Definitions</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Part-Definitions.html#Part-Definitions">Part Definitions</a>
+<hr><br>
+</div>
+
+<h4 class="subsection">4.3.1 Instruction Format</h4>
+
+<p class="noindent">Instruction formats are specified as a comma seperated list of string
+values containing information (bit specifiers) about each of the 32 bits
+of the instruction.  Bit specifiers may be one of the following formats:
+
+     <dl>
+<dt><code>1</code><dd>The bit is always set on input as well as output
+
+     <br><dt><code>0</code><dd>the bit is always clear on input as well as output
+
+     <br><dt><code>x</code><dd>the bit is ignored on input and output
+
+     <br><dt><code>a</code><dd>the bit is an address bit, the bit-number matches this bit specifier's
+position within the current instruction byte
+
+     <br><dt><code>a</code><var>N</var><dd>the bit is the <var>N</var>th address bit, bit-number = N, i.e., <code>a12</code>
+is address bit 12 on input, <code>a0</code> is address bit 0.
+
+     <br><dt><code>i</code><dd>the bit is an input data bit
+
+     <br><dt><code>o</code><dd>the bit is an output data bit
+
+   </dl>
+
+   <p>Each instruction must be composed of 32 bit specifiers.  The instruction
+specification closely follows the instruction data provided in Atmel's
+data sheets for their parts.  For example, the EEPROM read and write
+instruction for an AT90S2313 AVR part could be encoded as:
+
+<pre class="smallexample">     
+     read  = "1  0  1  0   0  0  0  0   x x x x  x x x x",
+             "x a6 a5 a4  a3 a2 a1 a0   o o o o  o o o o";
+     
+     write = "1  1  0  0   0  0  0  0   x x x x  x x x x",
+             "x a6 a5 a4  a3 a2 a1 a0   i i i i  i i i i";
+     
+</pre>
+   <!-- Node -->
+</body></html>
+

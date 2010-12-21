@@ -1,0 +1,122 @@
+<html lang="en">
+<head>
+<title>AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="#Top">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<h1 class="settitle">AVRDUDE</h1>
+   <div class="contents">
+<h2>Table of Contents</h2>
+<ul>
+<li><a name="toc_Introduction" href="Introduction.html#Introduction">1 Introduction</a>
+<ul>
+<li><a href="History.html#History">1.1 History and Credits</a>
+</li></ul>
+<li><a name="toc_Command-Line-Options" href="Command-Line-Options.html#Command-Line-Options">2 Command Line Options</a>
+<ul>
+<li><a href="Option-Descriptions.html#Option-Descriptions">2.1 Option Descriptions</a>
+<li><a href="Programmers-accepting-extended-parameters.html#Programmers-accepting-extended-parameters">2.2 Programmers accepting extended parameters</a>
+<li><a href="Example-Command-Line-Invocations.html#Example-Command-Line-Invocations">2.3 Example Command Line Invocations</a>
+</li></ul>
+<li><a name="toc_Terminal-Mode-Operation" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation">3 Terminal Mode Operation</a>
+<ul>
+<li><a href="Terminal-Mode-Commands.html#Terminal-Mode-Commands">3.1 Terminal Mode Commands</a>
+<li><a href="Terminal-Mode-Examples.html#Terminal-Mode-Examples">3.2 Terminal Mode Examples</a>
+</li></ul>
+<li><a name="toc_Configuration-File" href="Configuration-File.html#Configuration-File">4 Configuration File</a>
+<ul>
+<li><a href="AVRDUDE-Defaults.html#AVRDUDE-Defaults">4.1 AVRDUDE Defaults</a>
+<li><a href="Programmer-Definitions.html#Programmer-Definitions">4.2 Programmer Definitions</a>
+<li><a href="Part-Definitions.html#Part-Definitions">4.3 Part Definitions</a>
+<ul>
+<li><a href="Instruction-Format.html#Instruction-Format">4.3.1 Instruction Format</a>
+</li></ul>
+<li><a href="Other-Notes.html#Other-Notes">4.4 Other Notes</a>
+</li></ul>
+<li><a name="toc_Programmer-Specific-Information" href="Programmer-Specific-Information.html#Programmer-Specific-Information">5 Programmer Specific Information</a>
+<ul>
+<li><a href="Atmel-STK600.html#Atmel-STK600">5.1 Atmel STK600</a>
+</li></ul>
+<li><a name="toc_Platform-Dependent-Information" href="Platform-Dependent-Information.html#Platform-Dependent-Information">Appendix A Platform Dependent Information</a>
+<ul>
+<li><a href="Unix.html#Unix">A.1 Unix</a>
+<ul>
+<li><a href="Unix-Installation.html#Unix-Installation">A.1.1 Unix Installation</a>
+<ul>
+<li><a href="FreeBSD-Installation.html#FreeBSD-Installation">A.1.1.1 FreeBSD Installation</a>
+<li><a href="Linux-Installation.html#Linux-Installation">A.1.1.2 Linux Installation</a>
+</li></ul>
+<li><a href="Unix-Configuration-Files.html#Unix-Configuration-Files">A.1.2 Unix Configuration Files</a>
+<ul>
+<li><a href="FreeBSD-Configuration-Files.html#FreeBSD-Configuration-Files">A.1.2.1 FreeBSD Configuration Files</a>
+<li><a href="Linux-Configuration-Files.html#Linux-Configuration-Files">A.1.2.2 Linux Configuration Files</a>
+</li></ul>
+<li><a href="Unix-Port-Names.html#Unix-Port-Names">A.1.3 Unix Port Names</a>
+<li><a href="Unix-Documentation.html#Unix-Documentation">A.1.4 Unix Documentation</a>
+</li></ul>
+<li><a href="Windows.html#Windows">A.2 Windows</a>
+<ul>
+<li><a href="Windows-Installation.html#Windows-Installation">A.2.1 Installation</a>
+<li><a href="Windows-Configuration-Files.html#Windows-Configuration-Files">A.2.2 Configuration Files</a>
+<ul>
+<li><a href="Configuration-file-names.html#Configuration-file-names">A.2.2.1 Configuration file names</a>
+<li><a href="How-AVRDUDE-finds-the-configuration-files_002e.html#How-AVRDUDE-finds-the-configuration-files_002e">A.2.2.2 How AVRDUDE finds the configuration files.</a>
+</li></ul>
+<li><a href="Windows-Port-Names.html#Windows-Port-Names">A.2.3 Port Names</a>
+<ul>
+<li><a href="Serial-Ports.html#Serial-Ports">A.2.3.1 Serial Ports</a>
+<li><a href="Parallel-Ports.html#Parallel-Ports">A.2.3.2 Parallel Ports</a>
+</li></ul>
+<li><a href="Using-the-parallel-port.html#Using-the-parallel-port">A.2.4 Using the parallel port</a>
+<ul>
+<li><a href="Windows-NT_002f2K_002fXP.html#Windows-NT_002f2K_002fXP">A.2.4.1 Windows NT/2K/XP</a>
+<li><a href="Windows-95_002f98.html#Windows-95_002f98">A.2.4.2 Windows 95/98</a>
+</li></ul>
+<li><a href="Documentation.html#Documentation">A.2.5 Documentation</a>
+<li><a href="Credits_002e.html#Credits_002e">A.2.6 Credits.</a>
+</li></ul>
+</li></ul>
+<li><a name="toc_Troubleshooting" href="Troubleshooting.html#Troubleshooting">Appendix B Troubleshooting</a>
+</li></ul>
+</div>
+
+
+
+<!-- Top Node -->
+<div class="node">
+<p>
+<a name="Top"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Introduction.html#Introduction">Introduction</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="../index.html#dir">(dir)</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="../index.html#dir">(dir)</a>
+<hr><br>
+</div>
+
+<!-- node-name,  next,  previous,  up -->
+<ul class="menu">
+<li><a accesskey="1" href="Introduction.html#Introduction">Introduction</a>
+<li><a accesskey="2" href="Command-Line-Options.html#Command-Line-Options">Command Line Options</a>
+<li><a accesskey="3" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation">Terminal Mode Operation</a>
+<li><a accesskey="4" href="Configuration-File.html#Configuration-File">Configuration File</a>
+<li><a accesskey="5" href="Programmer-Specific-Information.html#Programmer-Specific-Information">Programmer Specific Information</a>
+<li><a accesskey="6" href="Platform-Dependent-Information.html#Platform-Dependent-Information">Platform Dependent Information</a>
+<li><a accesskey="7" href="Troubleshooting.html#Troubleshooting">Troubleshooting</a>
+</ul>
+
+<!-- Node -->
+</body></html>
+

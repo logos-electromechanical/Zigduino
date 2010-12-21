@@ -1,0 +1,1303 @@
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/COPYING.LIBGLOSS newlib/COPYING.LIBGLOSS
+--- COPYING.LIBGLOSS	2007-12-19 13:47:45.000000000 -0700
++++ COPYING.LIBGLOSS	2009-01-05 17:46:22.003379700 -0700
+@@ -204,3 +204,33 @@ CONTRACT, STRICT LIABILITY, OR TORT (INC
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ POSSIBILITY OF SUCH DAMAGE.
+ 
++(12) Atmel Corporation  (avr32 targets only)
++Copyright (c) 2006, Atmel Corporation All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are met:
++
++1. Redistributions of source code must retain the above copyright notice,
++this list of conditions and the following disclaimer.
++
++2. Redistributions in binary form must reproduce the above copyright notice,
++this list of conditions and the following disclaimer in the documentation
++and/or other materials provided with the distribution.
++
++3. The name of ATMEL may not be used to endorse or promote products
++derived from this software without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED BY ATMEL ``AS IS'' AND ANY EXPRESS
++OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
++PARTICULAR PURPOSE ARE EXPRESSLY AND SPECIFICALLY
++DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT,
++INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
++OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
++WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++POSSIBILITY OF SUCH DAMAGE.
++
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/COPYING.NEWLIB newlib/COPYING.NEWLIB
+--- COPYING.NEWLIB	2007-12-19 12:12:23.000000000 -0700
++++ COPYING.NEWLIB	2009-01-05 17:46:22.018991900 -0700
+@@ -637,4 +637,33 @@ SUCH DAMAGE.
+   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGE.
+ 
++(30) Atmel Corporation  (avr32 targets only)
++Copyright (c) 2006, Atmel Corporation All rights reserved.
++
++Redistribution and use in source and binary forms, with or without
++modification, are permitted provided that the following conditions are met:
++
++1. Redistributions of source code must retain the above copyright notice,
++this list of conditions and the following disclaimer.
++
++2. Redistributions in binary form must reproduce the above copyright notice,
++this list of conditions and the following disclaimer in the documentation
++and/or other materials provided with the distribution.
++
++3. The name of ATMEL may not be used to endorse or promote products
++derived from this software without specific prior written permission.
++
++THIS SOFTWARE IS PROVIDED BY ATMEL ``AS IS'' AND ANY EXPRESS
++OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
++PARTICULAR PURPOSE ARE EXPRESSLY AND SPECIFICALLY
++DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR ANY DIRECT,
++INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
++SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
++OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
++THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
++OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
++WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
++POSSIBILITY OF SUCH DAMAGE.
+ 
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/configure.host newlib/newlib/configure.host
+--- newlib/configure.host	2007-11-07 14:42:24.000000000 -0700
++++ newlib/configure.host	2009-01-05 17:44:07.551113300 -0700
+@@ -76,7 +76,7 @@ case "${target_optspace}:${host}" in
+   yes:*)
+     newlib_cflags="${newlib_cflags} -Os"
+     ;;
+-  :m32r-* | :d10v-* | :d30v-* | :avr-* | :m32c-* )
++  :m32r-* | :d10v-* | :d30v-* | :avr-* | :avr32-* | :m32c-* )
+     newlib_cflags="${newlib_cflags} -Os"
+     ;;
+   no:* | :*)
+@@ -99,6 +99,10 @@ case "${host_cpu}" in
+   arm)
+ 	machine_dir=arm
+ 	;;
++  avr32*)
++        machine_dir=avr32        
++	newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -ffunction-sections -fdata-sections"
++    ;;
+   avr*)
+ 	newlib_cflags="${newlib_cflags} -DPREFER_SIZE_OVER_SPEED -mcall-prologues"
+ 	;;
+@@ -358,6 +362,9 @@ case "${host}" in
+   crx*)
+ 	sys_dir=
+ 	;;
++  avr32-*-*)
++	sys_dir=avr32 
++	;;
+   d10v*)
+ 	sys_dir=d10v
+ 	;;
+@@ -564,6 +571,10 @@ case "${host}" in
+   arc*)
+ 	newlib_cflags="${newlib_cflags} -DREENTRANT_SYSCALLS_PROVIDED"
+ 	;;
++  avr32*)
++	syscall_dir=syscalls	
++	newlib_cflags="${newlib_cflags} -DHAVE_SYSTEM -DSMALL_MEMORY -DHAVE_GETTIMEOFDAY"
++	;;
+   avr*)
+ 	newlib_cflags="${newlib_cflags} -DNO_EXEC -DSMALL_MEMORY -DMISSING_SYSCALL_NAMES"
+ 	;;
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/include/machine/ieeefp.h newlib/newlib/libc/include/machine/ieeefp.h
+--- newlib/libc/include/machine/ieeefp.h	2007-11-07 14:42:24.000000000 -0700
++++ newlib/libc/include/machine/ieeefp.h	2009-01-05 17:36:06.070865300 -0700
+@@ -271,6 +271,10 @@
+ #define _DOUBLE_IS_32BITS
+ #endif
+ 
++#ifdef __AVR32__
++#define __IEEE_BIG_ENDIAN
++#endif
++
+ #if defined(__or32__) || defined(__or1k__) || defined(__or16__)
+ #define __IEEE_BIG_ENDIAN
+ #endif
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/include/machine/setjmp.h newlib/newlib/libc/include/machine/setjmp.h
+--- newlib/libc/include/machine/setjmp.h	2007-11-07 14:42:24.000000000 -0700
++++ newlib/libc/include/machine/setjmp.h	2009-01-05 17:36:06.117701900 -0700
+@@ -13,6 +13,14 @@ _BEGIN_STD_C
+ #define _JBLEN 24
+ #endif
+ 
++#if defined(__AVR32__)
++/*
++  r0-r7, lr, sp
++ */
++#define _JBLEN 10
++#endif
++
++
+ #ifdef __sparc__
+ /*
+  * onsstack,sigmask,sp,pc,npc,psr,g1,o0,wbcnt (sigcontext).
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/include/machine/time.h newlib/newlib/libc/include/machine/time.h
+--- newlib/libc/include/machine/time.h	2000-12-04 12:06:37.000000000 -0700
++++ newlib/libc/include/machine/time.h	2009-01-05 17:36:06.086477500 -0700
+@@ -6,6 +6,10 @@
+ #else  /* !__rtems__ */
+ #if defined(__arm__) || defined(__thumb__)
+ #define _CLOCKS_PER_SEC_ 100
++#else
++#if defined(__AVR32__)
++#define _CLOCKS_PER_SEC_ 1000000
++#endif
+ #endif
+ #endif /* !__rtems__ */
+ 
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/avr32/Makefile.am newlib/newlib/libc/machine/avr32/Makefile.am
+--- newlib/libc/machine/avr32/Makefile.am	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/machine/avr32/Makefile.am	2009-01-05 17:36:50.987164700 -0700
+@@ -0,0 +1,16 @@
++## Process this file with automake to generate Makefile.in
++
++AUTOMAKE_OPTIONS = cygnus
++
++INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
++
++AM_CCASFLAGS = $(INCLUDES)
++
++noinst_LIBRARIES = lib.a
++
++lib_a_SOURCES = strcmp.S strncpy.S memcpy.S
++lib_a_CCASFLAGS=$(AM_CCASFLAGS)
++lib_a_CFLAGS = $(AM_CFLAGS)
++
++ACLOCAL_AMFLAGS = -I ../../..
++CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/avr32/configure.in newlib/newlib/libc/machine/avr32/configure.in
+--- newlib/libc/machine/avr32/configure.in	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/machine/avr32/configure.in	2009-01-05 17:36:50.987164700 -0700
+@@ -0,0 +1,14 @@
++dnl This is the newlib/libc/machine/arm configure.in file.
++dnl Process this file with autoconf to produce a configure script.
++
++AC_PREREQ(2.59)
++AC_INIT([newlib],[NEWLIB_VERSION])
++AC_CONFIG_SRCDIR([Makefile.am])
++
++dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
++AC_CONFIG_AUX_DIR(../../../..)
++
++NEWLIB_CONFIGURE(../../..)
++
++AC_CONFIG_FILES([Makefile])
++AC_OUTPUT
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/avr32/memcpy.S newlib/newlib/libc/machine/avr32/memcpy.S
+--- newlib/libc/machine/avr32/memcpy.S	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/machine/avr32/memcpy.S	2009-01-05 17:36:51.018389100 -0700
+@@ -0,0 +1,269 @@
++/*
++ * Copyright (C) 2004,2005,2006,2007,2008,2009 Atmel Corporation
++ */
++
++/* Don't use r12 as dst since we must return it unmodified */
++
++	.text
++	.global	memcpy
++	.type	memcpy, @function
++#if  defined(__AVR32_HAS_UNALIGNED_WORD__)
++memcpy:	
++	/* Check if src and dst are aligned
++	   if not do a word based copying. */
++	or	r9, r12, r11
++	andl	r9, 3, COH
++	brne	.Lunaligned_copy	
++
++	pushm	r12, lr
++	sub	r10, 8
++	brmi	.Lword_copy
++
++0:	
++	ld.d	r8, r11++
++	sub	r10, 8	
++	st.d	r12++, r8
++	brpl	0b
++	
++.Lword_copy:	
++	sub	r10, -4
++	brmi	.Lbyte_copy
++
++0:	
++	ld.w	r8, r11++
++	sub	r10, 4	
++	st.w	r12++, r8
++	brpl	0b
++
++.Lbyte_copy:
++	sub	r10, -4	
++	breq	2f
++1:	
++	ld.ub	r8, r11++
++	sub	r10, 1
++	st.b	r12++, r8
++	brne	1b
++2:	
++	popm	r12, pc
++
++.Lunaligned_copy:
++	mov	r9, r12
++	sub	r10, 4	
++
++	brmi	.Lbyte_copy2
++
++0:	
++	ld.w	r8, r11++
++	sub	r10, 4	
++	st.w	r12++, r8
++	brpl	0b
++
++.Lbyte_copy2:
++	sub	r10, -4	
++	reteq	r9
++1:	
++	ld.ub	r8, r11++
++	sub	r10, 1
++	st.b	r12++, r8
++	brne	1b
++
++	ret	r9
++
++					
++#else	
++	
++#define dst r9
++#define src r11
++#define len r10
++	
++#if  defined(__AVR32_UC__)	
++memcpy:
++	/* If we have less than 8 bytes, don't do anything fancy 
++	   just an unrolled byte copy */
++	cp.w	r10, 8
++	brlt	.Lless_than_8
++	/* Check if src and dst are aligned. */
++	or	r9, r12, r11
++	andl	r9, 3, COH
++	brne	.Lunaligned_copy	
++
++	/* Check if larger than 31 */
++	cp.w	r10, 32
++	brge	.Lmore_than_31:
++
++	/* Less than 32. */
++	asr	r8, r10, 2
++	rsub	r9, r8, 8
++	add	pc, pc, r9 << 2
++	.irp	offset,0,1,2,3,4,5,6
++	ld.w	r9, r11[(6-\offset)*4]
++	st.w	r12[(6-\offset)*4], r9
++	.endr
++	
++	add	r11, r11, r8 << 2 
++	add	r8, r12, r8 << 2 
++	andl	r10, 0x3 
++	rsub	r10, r10, 4
++	add	pc, pc, r10 << 2
++	.irp	offset,0,1,2
++	ld.ub	r9, r11[2-\offset]
++	st.b	r8[2-\offset], r9
++	.endr
++	
++	retal	r12
++
++.Lless_than_8:	
++	rsub	r10, r10, 9
++	add	pc, pc, r10 << 2
++	.irp	offset,0,1,2,3,4,5,6,7
++	ld.ub	r9, r11[7-\offset]
++	st.b	r12[7-\offset], r9
++	.endr
++	
++	retal	r12
++
++.Lmore_than_31:
++	stm	--sp, r6-r7, lr
++	mov	r9, r12
++
++.Laligned_copy:
++	sub	r10, 32
++
++1:	/* Copy 32 bytes at a time */
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	sub	r10, 32
++	brge	1b
++	
++.Lless_than_32:
++	/* Copy 16 more bytes if possible */
++	sub	r10, -16
++	brlt	.Lless_than_16
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	ld.d	r6, r11++
++	st.d	r9++, r6
++	sub	r10, 16
++
++.Lless_than_16:
++
++	/* Do the remaining as byte copies */
++	neg	r10
++	add	pc, pc, r10 << 3
++	nop
++	nop
++	.irp	offset,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14
++	ld.ub	r6, r11[14-\offset],e
++	st.b	r9[14-\offset], r6,e
++	.endr
++	
++	ldm	sp++, r6-r7, pc
++
++.Lunaligned_copy:	
++	/* src and dst are unaligned. */
++0:	
++	sub	r10, 1
++	ld.ub	r9, r11[r10]
++	st.b	r12[r10], r9
++	brne	0b
++	
++	retal	r12	
++	.size	memcpy, . - memcpy
++
++#else
++memcpy:
++	pref	src[0]
++	mov	dst, r12
++
++	/* If we have less than 32 bytes, don't do anything fancy */
++	cp.w	len, 32
++	brge	.Lmore_than_31
++
++	sub	len, 1
++	retlt	r12
++1:	ld.ub	r8, src++
++	st.b	r12, r8
++	sub	len, 1
++	brge	1b
++	retal	r12
++
++.Lmore_than_31:
++	pushm	r0-r7, lr
++
++	/* Check alignment */
++	mov	r8, src
++	andl	r8, 31, COH
++	brne	.Lunaligned_src
++	mov	r8, dst
++	andl	r8, 3, COH
++	brne	.Lunaligned_dst
++
++.Laligned_copy:
++	sub	len, 32
++	brlt	.Lless_than_32
++
++1:	/* Copy 32 bytes at a time */
++	pref	src[32]
++	ldm	src, r0-r7
++	sub	src, -32
++	stm	dst, r0-r7
++	sub	dst, -32
++	sub	len, 32
++	brge	1b
++	
++.Lless_than_32:
++	/* Copy 16 more bytes if possible */
++	sub	len, -16
++	brlt	.Lless_than_16
++	ldm	src, r0-r3
++	sub	src, -16
++	sub	len, 16
++	stm	dst, r0-r3
++	sub	dst, -16
++
++.Lless_than_16:
++	/* Do the remaining as byte copies */
++	neg	len
++	add	pc, pc, len << 2
++	.rept	15
++	ld.ub	r0, src++
++	st.b	dst++, r0
++	.endr
++
++	popm	r0-r7, pc
++
++.Lunaligned_src:
++	/* Make src cacheline-aligned. r8 = (src & 31) */
++	rsub	r8, r8, 32
++	sub	len, r8
++1:	ld.ub	r0, src++
++	st.b	dst++, r0
++	sub	r8, 1
++	brne	1b
++
++	/* If dst is word-aligned, we're ready to go */
++	pref	src[0]
++	mov	r8, 3
++	tst	dst, r8
++	breq	.Laligned_copy
++
++.Lunaligned_dst:
++	/* src is aligned, but dst is not. Expect bad performance */
++0:	
++	ld.ub	r0, src++
++	st.b	dst++, r0
++	sub	len, 1
++	brne	0b
++	
++	popm	r0-r7, pc
++	.size	memcpy, . - memcpy
++
++
++#endif
++#endif
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/avr32/strcmp.S newlib/newlib/libc/machine/avr32/strcmp.S
+--- newlib/libc/machine/avr32/strcmp.S	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/machine/avr32/strcmp.S	2009-01-05 17:36:51.002776900 -0700
+@@ -0,0 +1,133 @@
++	.align	2
++	.global strcmp
++
++strcmp:	
++#if !defined(__AVR32_HAS_UNALIGNED_WORD__)
++#ifdef __AVR32_UC__
++	/* Check if both strings are aligned. */
++	or	r10, r12, r11
++	andl	r10, 3, COH
++	brne	.Lbyte_strcmp	
++0:		
++	ld.w	r10, r12[0]
++	ld.w	r9, r11[0]
++	tnbz	r10
++	breq	1f
++	cp.w	r10, r9
++	brne	1f
++	ld.w	r10, r12[4]
++	ld.w	r9, r11[4]
++	tnbz	r10
++	breq	1f
++	cp.w	r10, r9
++	brne	1f
++	ld.w	r10, r12[8]
++	ld.w	r9, r11[8]
++	tnbz	r10
++	breq	1f
++	cp.w	r10, r9
++	brne	1f
++	ld.w	r10, r12[12]
++	ld.w	r9, r11[12]
++	tnbz	r10
++	breq	1f
++	sub	r12, -16
++	sub	r11, -16
++	cp.w	r10, r9
++	breq	0b
++1:
++	bfextu	r12, r10, 24, 8
++	bfextu	r11, r9, 24, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++		
++	bfextu	r12, r10, 16, 8
++	bfextu	r11, r9, 16, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++
++	bfextu	r12, r10, 8, 8
++	bfextu	r11, r9, 8, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++
++	castu.b	r10
++	castu.b	r9
++	sub	r10, r9
++	ret	r10	
++
++.Lbyte_strcmp:	
++0:	
++	ld.ub	r10, r11[0]
++	ld.ub	r9, r12[0]
++	cp.w	r10, 0
++	reteq	r9
++	sub	r9, r10
++	retne	r9
++	ld.ub	r10, r11[1]
++	ld.ub	r9, r12[1]
++	cp.w	r10, 0
++	reteq	r9
++	sub	r9, r10
++	retne	r9
++	ld.ub	r10, r11[2]
++	ld.ub	r9, r12[2]
++	cp.w	r10, 0
++	reteq	r9
++	sub	r9, r10
++	retne	r9
++	ld.ub	r10, r11[3]
++	ld.ub	r9, r12[3]
++	cp.w	r10, 0
++	reteq	r9
++	sub	r9, r10
++	retne	r9
++	sub	r11, -4
++	sub	r12, -4
++	rjmp	0b
++#else
++0:	
++	ld.ub	r10, r11++
++	ld.ub	r9, r12++
++	cp.w	r10, 0
++	reteq	r9
++	sub	r9, r10
++	breq	0b
++	ret	r9
++#endif
++#else
++0:	
++	ld.w	r10, r12++
++	ld.w	r9, r11++
++	tnbz	r10
++	breq	1f
++	cp.w	r10, r9
++	breq	0b
++	
++1:
++	bfextu	r12, r10, 24, 8
++	bfextu	r11, r9, 24, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++		
++	bfextu	r12, r10, 16, 8
++	bfextu	r11, r9, 16, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++
++	bfextu	r12, r10, 8, 8
++	bfextu	r11, r9, 8, 8
++	reteq	r12
++	sub	r12, r11
++	retne	r12
++
++	castu.b	r10
++	castu.b	r9
++	sub	r10, r9
++	ret	r10	
++#endif	
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/avr32/strncpy.S newlib/newlib/libc/machine/avr32/strncpy.S
+--- newlib/libc/machine/avr32/strncpy.S	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/machine/avr32/strncpy.S	2009-01-05 17:36:50.971552500 -0700
+@@ -0,0 +1,39 @@
++	.align	2
++	.global strncpy
++
++strncpy :	
++#ifdef __AVR32_UC__	
++	mov	r8, 0
++0:	
++	cp.w	r10, r8
++	reteq	r12
++	ld.ub	r9, r11[r8]
++	st.b	r12[r8], r9
++	sub	r8, -1
++	cp.w	r9, 0
++	brne	0b
++
++1:	
++	cp.w	r10, r8
++	reteq	r12
++	st.b	r12[r8], r9
++	sub	r8, -1
++	rjmp	1b
++#else
++	mov	r8, r12
++0:	
++	sub	r10, 1
++	ld.ub	r9, r11++
++	retmi	r12
++	st.b	r8++, r9
++	cp.w	r9, 0
++	brne	0b
++
++1:	
++	sub	r10, 1
++	retmi	r12
++	st.b	r8++, r9
++	rjmp	1b
++	
++	
++#endif	
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/machine/configure.in newlib/newlib/libc/machine/configure.in
+--- newlib/libc/machine/configure.in	2007-11-07 14:42:24.000000000 -0700
++++ newlib/libc/machine/configure.in	2009-01-05 17:38:23.723632700 -0700
+@@ -24,6 +24,7 @@ if test -n "${machine_dir}"; then
+   case ${machine_dir} in
+ 	a29k) AC_CONFIG_SUBDIRS(a29k) ;;
+ 	arm) AC_CONFIG_SUBDIRS(arm) ;;
++	avr32) AC_CONFIG_SUBDIRS(avr32) ;;
+ 	bfin) AC_CONFIG_SUBDIRS(bfin) ;;
+ 	cris) AC_CONFIG_SUBDIRS(cris) ;;
+ 	crx) AC_CONFIG_SUBDIRS(crx) ;;
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/Makefile.am newlib/newlib/libc/sys/avr32/Makefile.am
+--- newlib/libc/sys/avr32/Makefile.am	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/Makefile.am	2009-01-05 17:41:02.562155500 -0700
+@@ -0,0 +1,18 @@
++## Process this file with automake to generate Makefile.in
++
++AUTOMAKE_OPTIONS = cygnus
++
++INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
++
++AM_CCASFLAGS = $(INCLUDES)
++
++noinst_LIBRARIES = lib.a
++
++lib_a_SOURCES = syscalls.c setjmp.S
++lib_a_CCASFLAGS = $(AM_CCASFLAGS)
++lib_a_CFLAGS = $(AM_CFLAGS)
++
++all: crt0.o
++
++ACLOCAL_AMFLAGS = -I ../../..
++CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/configure.in newlib/newlib/libc/sys/avr32/configure.in
+--- newlib/libc/sys/avr32/configure.in	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/configure.in	2009-01-05 17:41:02.562155500 -0700
+@@ -0,0 +1,13 @@
++dnl This is the newlib/libc/sys/avr32 configure.in file.
++dnl Process this file with autoconf to produce a configure script.
++
++AC_PREREQ(2.59)
++AC_INIT([newlib],[NEWLIB_VERSION])
++
++dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
++AC_CONFIG_AUX_DIR(../../../..)
++
++NEWLIB_CONFIGURE(../../..)
++
++AC_CONFIG_FILES([Makefile])
++AC_OUTPUT
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/crt0.S newlib/newlib/libc/sys/avr32/crt0.S
+--- newlib/libc/sys/avr32/crt0.S	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/crt0.S	2009-01-05 17:41:02.562155500 -0700
+@@ -0,0 +1,83 @@
++
++	.section	.reset,"ax"
++	
++	.global _start
++	.type	_start,@function
++_start:
++	/* Jump to wherever the linker thinks we are... */
++	lddpc	pc, .Ltext_vaddr
++
++	.align	2
++.Ltext_vaddr:
++	.word	_stext
++
++	.text
++	.global	_stext
++_stext:
++	/* Zero marks the end of the outermost frame.  */
++	mov	r7, 0
++
++	/*  Set up the stack pointer to a fixed value */
++	lda.w	r10, _estack
++
++	/*  If _stack is -1 don't set sp, the stack is then probably
++	    set by some other means i.e. by a bootloader. */
++	cp	r10, -1
++	movne	sp, r10
++
++	/* Copy the data segment into RAM if necessary. If data_lma
++	   is equal to data then VMA==LMA and no copying is necessary.
++	   The linker script must make sure that the data segment is at
++	   least dword-aligned.  */
++	lda.w	r11, _data_lma
++	lda.w	r12, _data
++	cp.w	r11, r12
++	breq	1f
++	lda.w	r10, _edata
++2:	ld.d	r8, r11++
++	st.d	r12++, r8
++	cp.w	r12, r10
++	brlt	2b
++	
++	/* Zero the memory in the .bss section.  */
++1:	lda.w	r10, _end
++	lda.w	r12, _edata
++
++	mov	r8, 0
++	mov	r9, 0
++2:	st.d	r12++, r8
++	cp.w	r12, r10
++	brlt	2b
++
++	/* User dependent initialization */
++	call	_init_startup
++
++	/* Register _fini function with atexit 
++	   The _fini function is responsible for calling destructors */
++	lda.w	r12, _fini
++	call	atexit
++
++	/* Call _init in order to initialize constructors etc */
++	call	_init
++		
++	/*Initialize argv, use stack for keeping arguments. 
++          _init_argv() returns argc in r12 and argv in r11
++	 and the total size used for the arguments in r10.*/
++	mov	r12, sp	
++	/* Signal that we are storing the arguments in a stackwise
++	   top down approach. */	
++	mov	r11, 0	
++	call	_init_argv
++	/* If initialization if argv is not handled then _init_argv
++           returns -1 so set argc to 0 and make sure no space is 
++	   allocated on the stack. */
++	cp.w	r12, -1
++	moveq	r12, 0
++	moveq	r10, 0
++	sub	sp, r10
++
++	/* Call main and call exit when it returns */
++	call	main
++	call	exit
++
++	.weak	_data_lma
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/setjmp.S newlib/newlib/libc/sys/avr32/setjmp.S
+--- newlib/libc/sys/avr32/setjmp.S	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/setjmp.S	2009-01-05 17:41:02.546543300 -0700
+@@ -0,0 +1,20 @@
++	.text
++	.globl setjmp
++setjmp:
++	stm	r12, r0, r1, r2, r3, r4, r5, r6, r7, sp, lr
++	retal	0
++
++	.globl longjmp
++longjmp:	
++	ldm	r12, r0, r1, r2, r3, r4, r5, r6, r7, sp, lr
++	/* Put the return value into the integer result register.
++	   But if it is zero then return 1 instead.  */	
++	cp	r11, 0
++	reteq	1
++	retal	r11
++
++
++	
++
++	
++	
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/sys/sysregs.h newlib/newlib/libc/sys/avr32/sys/sysregs.h
+--- newlib/libc/sys/avr32/sys/sysregs.h	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/sys/sysregs.h	2009-01-05 17:41:02.484094500 -0700
+@@ -0,0 +1,158 @@
++#ifndef __ASM_AVR32_SYSREGS_H
++#define __ASM_AVR32_SYSREGS_H
++
++#define SYSREG_SR	  0
++#define SYSREG_EVBA	  4
++#define SYSREG_ACBA	  8
++#define SYSREG_CPUCR	 12
++#define SYSREG_ECR       16
++#define SYSREG_RSR_SUP	 20
++#define SYSREG_RSR_INT0	 24
++#define SYSREG_RSR_INT1	 28
++#define SYSREG_RSR_INT2	 32
++#define SYSREG_RSR_INT3	 36
++#define SYSREG_RSR_EX	 40
++#define SYSREG_RSR_NMI	 44
++#define SYSREG_RSR_DBG	 48
++#define SYSREG_RAR_SUP	 52
++#define SYSREG_RAR_INT0	 56
++#define SYSREG_RAR_INT1	 60
++#define SYSREG_RAR_INT2	 64
++#define SYSREG_RAR_INT3	 68
++#define SYSREG_RAR_EX	 72
++#define SYSREG_RAR_NMI	 76
++#define SYSREG_RAR_DBG	 80
++#define SYSREG_JECR       84
++#define SYSREG_JOSP       88
++#define SYSREG_JAVA_LV0   92
++#define SYSREG_JAVA_LV1   96
++#define SYSREG_JAVA_LV2   100
++#define SYSREG_JAVA_LV3   104
++#define SYSREG_JAVA_LV4   108
++#define SYSREG_JAVA_LV5   112
++#define SYSREG_JAVA_LV6   116
++#define SYSREG_JAVA_LV7   120
++#define SYSREG_JTBA       124
++#define SYSREG_JBCR       128
++
++#define SYSREG_CONFIG0	256
++#define SYSREG_CONFIG1	260
++#define SYSREG_COUNT	264
++#define SYSREG_COMPARE	268
++
++#define SYSREG_BEAR 316
++
++/* MMU interface registers */
++#define SYSREG_TLBEHI	272
++#define SYSREG_TLBELO	276
++#define SYSREG_PTBR	280
++#define SYSREG_TLBEAR	284
++#define SYSREG_MMUCR	288
++#define SYSREG_TLBARLO	292
++#define SYSREG_TLBDRLO	296
++#define SYSREG_TLBARHI	300
++#define SYSREG_TLBDRHI	304
++
++/* Performance counter */
++#define SYSREG_PCCR	320
++
++ // Status register bits
++#define SR_C_OFFSET    0
++#define SR_Z_OFFSET    1
++#define SR_N_OFFSET    2
++#define SR_V_OFFSET    3
++#define SR_Q_OFFSET    4
++#define SR_T_OFFSET    14
++#define SR_R_OFFSET    15
++#define SR_GM_OFFSET   16
++#define SR_I0M_OFFSET  17
++#define SR_I1M_OFFSET  18
++#define SR_I2M_OFFSET  19
++#define SR_I3M_OFFSET  20
++#define SR_EM_OFFSET   21
++#define SR_M0_OFFSET   22
++#define SR_M1_OFFSET   23
++#define SR_M2_OFFSET   24
++#define SR_D_OFFSET    26
++#define SR_DM_OFFSET   27
++#define SR_J_OFFSET    28
++
++#define SR_C    (1 << 0)
++#define SR_Z    (1 << 1)
++#define SR_N    (1 << 2)
++#define SR_V    (1 << 3)
++#define SR_Q    (1 << 4)
++#define SR_T    (1 << 14)
++#define SR_R    (1 << 15)
++#define SR_GM   (1 << 16)
++#define SR_I0M  (1 << 17)
++#define SR_I1M  (1 << 18)
++#define SR_I2M  (1 << 19)
++#define SR_I3M  (1 << 20)
++#define SR_EM   (1 << 21)
++#define SR_M0   (1 << 22)
++#define SR_M1   (1 << 23)
++#define SR_M2   (1 << 24)
++#define SR_D    (1 << 26)
++#define SR_DM   (1 << 27)
++#define SR_J    (1 << 28)
++
++//PCCR bits
++#define PCCRS  (1<<3)
++#define PCCRC  (1<<2)
++#define PCCRR  (1<<1)
++#define PCCRE  (1<<0)
++#define PCCNT_PRESCALE 64
++
++//TLBEHI bits
++#define TLBEHIVPN  (1<<10)
++#define TLBEHIV  (1<<9)
++#define TLBEHII  (1<<0)
++ 
++//TLBELO = bits
++#define TLBELOPFN  (1<<10)
++#define TLBELOC  (1<<9)
++#define TLBELOG  (1<<8)
++#define TLBELOB  (1<<7)
++#define TLBELOAP  (1<<5)
++#define TLBELOSZ  (1<<2)
++#define TLBELOD  (1<<1)
++#define TLBELOW  (1<<0)
++ 
++//MMUCR bits
++#define MMUIRP  (1<<26)
++#define MMUILA  (1<<20)
++#define MMUDRP  (1<<14)
++#define MMUDLA  (1<<8)
++#define MMUS  (1<<4)
++#define MMUN  (1<<3)
++#define MMUI  (1<<2)
++#define MMUM  (1<<1)
++#define MMUE  (1<<0)
++ 
++// Relative offsets to EVBA
++#define H_UNREC_EX  0x000
++#define H_TLB_MH    0x004
++#define H_BUS_ERR_D 0x008
++#define H_BUS_ERR_I 0x00C
++#define H_NMI       0x010
++#define H_INST_ADDR 0x014
++#define H_ITLB_MISS 0x050
++#define H_ITLB_PROT 0x018
++#define H_DEBUG     0x01C
++#define H_ILL_OPC   0x020
++#define H_UNIMPL_INST 0x024
++#define H_PRIV_VIOL 0x028
++#define H_FLOAT_PT  0x02C
++#define H_COPROC_ABS 0x030
++#define H_SCALL  0x100
++#define H_DATA_ADDR_R  0x034
++#define H_DATA_ADDR_W  0x038
++#define H_DTLB_MISS_R  0x060
++#define H_DTLB_MISS_W  0x070
++#define H_DTLB_PROT_R  0x03C
++#define H_DTLB_PROT_W  0x040
++#define H_DTLB_MOD  0x044
++
++
++#endif /* __ASM_AVR32_SYSREGS_H */
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/syscalls.c newlib/newlib/libc/sys/avr32/syscalls.c
+--- newlib/libc/sys/avr32/syscalls.c	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/syscalls.c	2009-01-05 17:41:02.577767700 -0700
+@@ -0,0 +1,234 @@
++#include "syscalls.h"
++#include "sys/sysregs.h"
++#include <sys/times.h>
++#include <sys/time.h>
++#include <stdio.h>
++#include <errno.h>
++
++int  __attribute__((weak))
++     _init_startup ()
++{
++  return 0;
++}
++
++
++clock_t __attribute__((weak))
++     _times( struct tms *tms )
++{
++  int tick;
++  tick = __builtin_mfsr(SYSREG_COUNT);
++  tms->tms_utime = 0;
++  tms->tms_stime = tick;
++  tms->tms_cutime = 0;
++  tms->tms_cstime = 0;
++  return tick;
++}
++ 
++extern void __heap_start__, __heap_end__;
++
++void * __attribute__((weak))
++     _sbrk(int increment)
++{
++  static void *cur_heap_pos = 0;
++
++  //Initialize cur_heap_pos
++  if ( cur_heap_pos == 0 )
++    cur_heap_pos = &__heap_start__;
++  
++  if ( (cur_heap_pos + increment) <= &__heap_end__ ){
++    void *heap_pos = cur_heap_pos;
++    cur_heap_pos += increment;
++    return heap_pos;
++  } else {
++#ifdef DEBUG_MSG_ON
++    fprintf(stderr, "Warning: Heap is running full trying to allocate %i bytes!!!!\n", increment);
++    fprintf(stderr, "\tHeap start address\t= 0x%x\n", &__heap_start__);
++    fprintf(stderr, "\tHeap end address\t= 0x%x\n", &__heap_end__);
++    fprintf(stderr, "\tCurrent heap address\t= 0x%x\n", cur_heap_pos);
++    fflush(stderr);
++#endif
++    errno = ENOMEM;
++    return (void *)-1;
++  }  
++  return (void *)-1;
++}
++  
++void __attribute__((weak,naked))
++     _init_argv (void *arg_mem_top)
++{
++  T2H_SYSCALL(T2H_SYSCALL_INIT_ARGV);
++  T2H_SYSCALL_RETURN();
++}
++
++void __attribute__((weak,naked))
++     _exit( int code )
++{
++  T2H_SYSCALL(T2H_SYSCALL_EXIT);
++  while (1);
++}
++
++int __attribute__((weak,naked))
++     _open (char *pathname, int flags, int mode)
++{
++  T2H_SYSCALL(T2H_SYSCALL_OPEN);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak,naked))
++     _close (int file)
++{
++  T2H_SYSCALL(T2H_SYSCALL_CLOSE);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak,naked))
++     _lseek( int filedes, int offset, int whence )
++{
++  T2H_SYSCALL(T2H_SYSCALL_LSEEK);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++
++int __attribute__((weak,naked))
++     _read (int file,
++            char * ptr,
++            int len){
++  T2H_SYSCALL(T2H_SYSCALL_READ);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak,naked))
++     _write (int file,
++             char * ptr,
++             int len){
++  T2H_SYSCALL(T2H_SYSCALL_WRITE);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak,naked))
++     isatty (int desc){ 
++  T2H_SYSCALL(T2H_SYSCALL_ISATTY);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++static void _convert_host2target_stat(struct stat *target_stat, struct host_stat *host_stat)
++{
++  target_stat->st_dev = (dev_t)host_stat->st_dev;
++  target_stat->st_ino = (ino_t)host_stat->st_ino;
++  target_stat->st_mode = (mode_t)host_stat->st_mode;
++  target_stat->st_nlink = (nlink_t)host_stat->st_nlink;
++  target_stat->st_uid = (uid_t)host_stat->st_uid;
++  target_stat->st_gid = (gid_t)host_stat->st_gid;
++  target_stat->st_rdev = (dev_t)host_stat->st_rdev;
++  target_stat->st_size = (off_t)host_stat->st_size;
++  target_stat->st_blksize = (long)host_stat->st_blksize;
++  target_stat->st_blocks = (long)host_stat->st_blocks;
++  target_stat->st_atime = (time_t)host_stat->st_atime; 
++  target_stat->st_mtime = (time_t)host_stat->st_mtime;
++  target_stat->st_ctime = (time_t)host_stat->st_ctime;
++}
++
++int __attribute__((naked))
++     _fstat_host (int filedes, struct host_stat *ptr){ 
++  T2H_SYSCALL(T2H_SYSCALL_FSTAT);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((naked))
++     _stat_host (const char *filename, struct host_stat *ptr){ 
++  T2H_SYSCALL(T2H_SYSCALL_STAT);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak))
++     _fstat (int filedes, struct stat *stat){ 
++  struct host_stat host_stat;
++  if ( _fstat_host (filedes, &host_stat) < 0 )
++    return -1;
++  _convert_host2target_stat (stat, &host_stat);
++  return 0;
++}
++
++int __attribute__((weak))
++     _stat (const char *filename, struct stat *stat){ 
++  struct host_stat host_stat;
++  if ( _stat_host (filename, &host_stat) < 0)
++    return -1;
++  _convert_host2target_stat (stat, &host_stat);
++  return 0;
++}
++
++
++int __attribute__((naked))
++     _gettimeofday_host (struct host_timeval *tv, struct timezone *tz){ 
++  T2H_SYSCALL(T2H_SYSCALL_GETTIMEOFDAY);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak))
++     _gettimeofday (struct timeval *tv, struct timezone *tz){ 
++  struct host_timeval host_tv;
++  if ( _gettimeofday_host (&host_tv, tz)  < 0 )
++    return -1;
++  tv->tv_sec = (long)host_tv.tv_sec;
++  tv->tv_usec = (long)host_tv.tv_usec;
++  return 0;
++}
++
++int __attribute__((weak,naked))
++     _unlink (const char *path){ 
++  T2H_SYSCALL(T2H_SYSCALL_UNLINK);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak,naked))
++     _system (const char *command){ 
++  T2H_SYSCALL(T2H_SYSCALL_SYSTEM);
++  T2H_SYSCALL_CHECK_ERROR_AND_RETURN();
++}
++
++int __attribute__((weak))
++     _execve (){
++  return -1;
++}
++
++
++int __attribute__((weak))
++     _fork (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     _wait (){ 
++  return -1; 
++}
++
++int __attribute__((weak))
++     sigfillset (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     sigprocmask (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     _fcntl (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     _link (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     _kill (){ 
++  return -1;
++}
++
++int __attribute__((weak))
++     _getpid (){
++  return -1;
++}
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/avr32/syscalls.h newlib/newlib/libc/sys/avr32/syscalls.h
+--- newlib/libc/sys/avr32/syscalls.h	1969-12-31 17:00:00.000000000 -0700
++++ newlib/libc/sys/avr32/syscalls.h	2009-01-05 17:41:02.562155500 -0700
+@@ -0,0 +1,72 @@
++#ifndef __SYSCALLS_H__
++#define __SYSCALLS_H__
++
++#include <sys/stat.h>
++#include <errno.h>
++
++struct host_stat {
++  unsigned int       st_dev;      /* device */
++  unsigned int       st_ino;      /* inode */
++  mode_t             st_mode;     /* protection */
++  unsigned int       st_nlink;    /* number of hard links */
++  unsigned int       st_uid;      /* user ID of owner */
++  unsigned int       st_gid;      /* group ID of owner */
++  unsigned int       st_rdev;     /* device type (if inode device) */
++  unsigned long long st_size;     /* total size, in bytes */
++  unsigned long long st_blksize;  /* blocksize for filesystem I/O */
++  unsigned long long st_blocks;   /* number of blocks allocated */
++  time_t             st_atime;    /* time of last access */
++  time_t             st_mtime;    /* time of last modification */
++  time_t             st_ctime;    /* time of last change */
++};
++
++struct host_timeval {
++  time_t tv_sec;
++  long long tv_usec;
++};
++
++
++#define T2H_SYSCALL_OPEN                1
++#define T2H_SYSCALL_CLOSE               2
++#define T2H_SYSCALL_READ                3
++#define T2H_SYSCALL_WRITE               4
++#define T2H_SYSCALL_LSEEK               5
++#define T2H_SYSCALL_RENAME              6
++#define T2H_SYSCALL_UNLINK              7
++#define T2H_SYSCALL_STAT                8
++#define T2H_SYSCALL_FSTAT               9
++#define T2H_SYSCALL_GETTIMEOFDAY        10
++#define T2H_SYSCALL_ISATTY              11
++#define T2H_SYSCALL_SYSTEM              12
++#define T2H_SYSCALL_EXIT                13
++#define T2H_SYSCALL_INIT_ARGV           14
++
++
++/* The breakpoint/mov r12,-1/mov r11,... pattern causes
++   the debugger to be able to recognize the system call. 
++   If the debug system is not enabled then the breakpoint 
++   is executed as a nop and r12 set to -1 and errno to 
++   ENOSYS. The debugger is responsible for setting r12
++   and r11 and skipping the instructions after the breakpoint
++   which would otherwise set these registers.
++*/    
++#define T2H_SYSCALL(syscall_code)                 \
++  asm ("mov   r8, %0\n"                           \
++       "breakpoint\n"                             \
++       "mov   r12, -1\n"                          \
++       "mov   r11, %1\n"                          \
++       :: "i" (syscall_code), "i" (ENOSYS) );
++
++#define T2H_SYSCALL_CHECK_ERROR_AND_RETURN()                            \
++  asm ("cp.w  r12, 0\n"                                                 \
++       "retge r12\n"                                                    \
++       "lda.w r10, errno\n"                                             \
++       "st.w  r10[0], r11\n"                                            \
++       "ret   r12\n"                                                    \
++       ".align 2\n"                                                     \
++       ".cpool\n");
++
++#define T2H_SYSCALL_RETURN()                                       \
++  asm ("ret  r12\n");                                            
++
++#endif
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/libc/sys/configure.in newlib/newlib/libc/sys/configure.in
+--- newlib/libc/sys/configure.in	2007-05-24 12:33:37.000000000 -0600
++++ newlib/libc/sys/configure.in	2009-01-05 17:44:07.082747300 -0700
+@@ -24,6 +24,7 @@ if test -n "${sys_dir}"; then
+ 	a29khif) AC_CONFIG_SUBDIRS(a29khif) ;;
+ 	arc) AC_CONFIG_SUBDIRS(arc) ;;
+ 	arm) AC_CONFIG_SUBDIRS(arm) ;;
++	avr32) AC_CONFIG_SUBDIRS(avr32) ;;
+ 	d10v) AC_CONFIG_SUBDIRS(d10v) ;;
+ 	decstation) AC_CONFIG_SUBDIRS(decstation) ;;
+ 	h8300hms) AC_CONFIG_SUBDIRS(h8300hms) ;;

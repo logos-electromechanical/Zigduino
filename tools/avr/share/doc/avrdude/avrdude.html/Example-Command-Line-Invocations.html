@@ -1,0 +1,180 @@
+<html lang="en">
+<head>
+<title>Example Command Line Invocations - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Command-Line-Options.html#Command-Line-Options" title="Command Line Options">
+<link rel="prev" href="Programmers-accepting-extended-parameters.html#Programmers-accepting-extended-parameters" title="Programmers accepting extended parameters">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Example-Command-Line-Invocations"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="Programmers-accepting-extended-parameters.html#Programmers-accepting-extended-parameters">Programmers accepting extended parameters</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Command-Line-Options.html#Command-Line-Options">Command Line Options</a>
+<hr><br>
+</div>
+
+<h3 class="section">2.3 Example Command Line Invocations</h3>
+
+<p class="noindent">Download the file <code>diag.hex</code> to the ATmega128 chip using the
+STK500 programmer connected to the default serial port:
+
+<pre class="smallexample">     <p><table class="cartouche" summary="cartouche" border="1"><tr><td>
+     % avrdude -p m128 -c stk500 -e -U flash:w:diag.hex
+     
+     avrdude: AVR device initialized and ready to accept instructions
+     
+     Reading | ################################################## | 100% 0.03s
+     
+     avrdude: Device signature = 0x1e9702
+     avrdude: erasing chip
+     avrdude: done.
+     avrdude: performing op: 1, flash, 0, diag.hex
+     avrdude: reading input file "diag.hex"
+     avrdude: input file diag.hex auto detected as Intel Hex
+     avrdude: writing flash (19278 bytes):
+     
+     Writing | ################################################## | 100% 7.60s
+     
+     avrdude: 19456 bytes of flash written
+     avrdude: verifying flash memory against diag.hex:
+     avrdude: load data flash data from input file diag.hex:
+     avrdude: input file diag.hex auto detected as Intel Hex
+     avrdude: input file diag.hex contains 19278 bytes
+     avrdude: reading on-chip flash data:
+     
+     Reading | ################################################## | 100% 6.83s
+     
+     avrdude: verifying ...
+     avrdude: 19278 bytes of flash verified
+     
+     avrdude: safemode: Fuses OK
+     
+     avrdude done.  Thank you.
+     
+     %
+     </td></tr></table>
+</pre>
+   <p class="noindent">Upload the flash memory from the ATmega128 connected to the STK500
+programmer and save it in raw binary format in the file named
+<code>c:/diag flash.bin</code>:
+
+<pre class="smallexample">     <p><table class="cartouche" summary="cartouche" border="1"><tr><td>
+     % avrdude -p m128 -c stk500 -U flash:r:"c:/diag flash.bin":r
+     
+     avrdude: AVR device initialized and ready to accept instructions
+     
+     Reading | ################################################## | 100% 0.03s
+     
+     avrdude: Device signature = 0x1e9702
+     avrdude: reading flash memory:
+     
+     Reading | ################################################## | 100% 46.10s
+     
+     avrdude: writing output file "c:/diag flash.bin"
+     
+     avrdude: safemode: Fuses OK
+     
+     avrdude done.  Thank you.
+     
+     %
+     </td></tr></table>
+</pre>
+   <p class="noindent">Using the default programmer, download the file <code>diag.hex</code> to
+flash, <code>eeprom.hex</code> to EEPROM, and set the Extended, High, and Low
+fuse bytes to 0xff, 0x89, and 0x2e respectively:
+
+<pre class="smallexample">     <p><table class="cartouche" summary="cartouche" border="1"><tr><td>
+     
+     % avrdude -p m128 -u -U flash:w:diag.hex \
+     &gt;                 -U eeprom:w:eeprom.hex \
+     &gt;                 -U efuse:w:0xff:m      \
+     &gt;                 -U hfuse:w:0x89:m      \
+     &gt;                 -U lfuse:w:0x2e:m
+     
+     avrdude: AVR device initialized and ready to accept instructions
+     
+     Reading | ################################################## | 100% 0.03s
+     
+     avrdude: Device signature = 0x1e9702
+     avrdude: NOTE: FLASH memory has been specified, an erase cycle will be performed
+              To disable this feature, specify the -D option.
+     avrdude: erasing chip
+     avrdude: reading input file "diag.hex"
+     avrdude: input file diag.hex auto detected as Intel Hex
+     avrdude: writing flash (19278 bytes):
+     
+     Writing | ################################################## | 100% 7.60s
+     
+     avrdude: 19456 bytes of flash written
+     avrdude: verifying flash memory against diag.hex:
+     avrdude: load data flash data from input file diag.hex:
+     avrdude: input file diag.hex auto detected as Intel Hex
+     avrdude: input file diag.hex contains 19278 bytes
+     avrdude: reading on-chip flash data:
+     
+     Reading | ################################################## | 100% 6.84s
+     
+     avrdude: verifying ...
+     avrdude: 19278 bytes of flash verified
+     
+     [ ... other memory status output skipped for brevity ... ]
+     
+     avrdude done.  Thank you.
+     
+     %
+     </td></tr></table>
+</pre>
+   <p class="noindent">Connect to the JTAG ICE mkII which serial number ends up in 1C37 via
+USB, and enter terminal mode:
+
+<pre class="smallexample">     <p><table class="cartouche" summary="cartouche" border="1"><tr><td>
+     
+     % avrdude -c jtag2 -p m649 -P usb:1c:37 -t
+     
+     avrdude: AVR device initialized and ready to accept instructions
+     
+     Reading | ################################################## | 100% 0.03s
+     
+     avrdude: Device signature = 0x1e9603
+     
+     [ ... terminal mode output skipped for brevity ... ]
+     
+     avrdude done.  Thank you.
+     
+     </td></tr></table>
+</pre>
+   <p class="noindent">List the serial numbers of all JTAG ICEs attached to USB.  This is
+done by specifying an invalid serial number, and increasing the
+verbosity level.
+
+<pre class="smallexample">     <p><table class="cartouche" summary="cartouche" border="1"><tr><td>
+     
+     % avrdude -c jtag2 -p m128 -P usb:xx -v
+     [...]
+              Using Port            : usb:xxx
+              Using Programmer      : jtag2
+     avrdude: usbdev_open(): Found JTAG ICE, serno: 00A000001C6B
+     avrdude: usbdev_open(): Found JTAG ICE, serno: 00A000001C3A
+     avrdude: usbdev_open(): Found JTAG ICE, serno: 00A000001C30
+     avrdude: usbdev_open(): did not find any (matching) USB device "usb:xxx"
+     
+     </td></tr></table>
+</pre>
+   <!-- Node -->
+</body></html>
+

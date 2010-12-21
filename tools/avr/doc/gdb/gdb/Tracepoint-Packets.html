@@ -1,0 +1,192 @@
+<html lang="en">
+<head>
+<title>Tracepoint Packets - Debugging with GDB</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Debugging with GDB">
+<meta name="generator" content="makeinfo 4.8">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Remote-Protocol.html#Remote-Protocol" title="Remote Protocol">
+<link rel="prev" href="Register-Packet-Format.html#Register-Packet-Format" title="Register Packet Format">
+<link rel="next" href="Host-I_002fO-Packets.html#Host-I_002fO-Packets" title="Host I/O Packets">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
+1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Free Software'' and ``Free Software Needs
+Free Documentation'', with the Front-Cover Texts being ``A GNU Manual,''
+and with the Back-Cover Texts as in (a) below.
+
+(a) The FSF's Back-Cover Text is: ``You are free to copy and modify
+this GNU Manual.  Buying copies from GNU Press supports the FSF in
+developing GNU and promoting software freedom.''-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Tracepoint-Packets"></a>
+Next:&nbsp;<a rel="next" accesskey="n" href="Host-I_002fO-Packets.html#Host-I_002fO-Packets">Host I/O Packets</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Register-Packet-Format.html#Register-Packet-Format">Register Packet Format</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Remote-Protocol.html#Remote-Protocol">Remote Protocol</a>
+<hr>
+</div>
+
+<h3 class="section">D.6 Tracepoint Packets</h3>
+
+<p><a name="index-tracepoint-packets-2164"></a><a name="index-packets_002c-tracepoint-2165"></a>
+Here we describe the packets <span class="sc">gdb</span> uses to implement
+tracepoints (see <a href="Tracepoints.html#Tracepoints">Tracepoints</a>).
+
+     <dl>
+<dt>`<samp><span class="samp">QTDP:</span><var>n</var><span class="samp">:</span><var>addr</var><span class="samp">:</span><var>ena</var><span class="samp">:</span><var>step</var><span class="samp">:</span><var>pass</var><span class="samp">[:X</span><var>len</var><span class="samp">,</span><var>bytes</var><span class="samp">][-]</span></samp>'<dd>Create a new tracepoint, number <var>n</var>, at <var>addr</var>.  If <var>ena</var>
+is `<samp><span class="samp">E</span></samp>', then the tracepoint is enabled; if it is `<samp><span class="samp">D</span></samp>', then
+the tracepoint is disabled.  <var>step</var> is the tracepoint's step
+count, and <var>pass</var> is its pass count.  If an `<samp><span class="samp">X</span></samp>' is present,
+it introduces a tracepoint condition, which consists of a hexadecimal
+length, followed by a comma and hex-encoded bytes, in a manner similar
+to action encodings as described below.  If the trailing `<samp><span class="samp">-</span></samp>' is
+present, further `<samp><span class="samp">QTDP</span></samp>' packets will follow to specify this
+tracepoint's actions.
+
+     <p>Replies:
+          <dl>
+<dt>`<samp><span class="samp">OK</span></samp>'<dd>The packet was understood and carried out. 
+<br><dt>`<samp></samp>'<dd>The packet was not recognized. 
+</dl>
+
+     <br><dt>`<samp><span class="samp">QTDP:-</span><var>n</var><span class="samp">:</span><var>addr</var><span class="samp">:[S]</span><var>action</var><span class="samp">...[-]</span></samp>'<dd>Define actions to be taken when a tracepoint is hit.  <var>n</var> and
+<var>addr</var> must be the same as in the initial `<samp><span class="samp">QTDP</span></samp>' packet for
+this tracepoint.  This packet may only be sent immediately after
+another `<samp><span class="samp">QTDP</span></samp>' packet that ended with a `<samp><span class="samp">-</span></samp>'.  If the
+trailing `<samp><span class="samp">-</span></samp>' is present, further `<samp><span class="samp">QTDP</span></samp>' packets will follow,
+specifying more actions for this tracepoint.
+
+     <p>In the series of action packets for a given tracepoint, at most one
+can have an `<samp><span class="samp">S</span></samp>' before its first <var>action</var>.  If such a packet
+is sent, it and the following packets define &ldquo;while-stepping&rdquo;
+actions.  Any prior packets define ordinary actions &mdash; that is, those
+taken when the tracepoint is first hit.  If no action packet has an
+`<samp><span class="samp">S</span></samp>', then all the packets in the series specify ordinary
+tracepoint actions.
+
+     <p>The `<samp><var>action</var><span class="samp">...</span></samp>' portion of the packet is a series of
+actions, concatenated without separators.  Each action has one of the
+following forms:
+
+          <dl>
+<dt>`<samp><span class="samp">R </span><var>mask</var></samp>'<dd>Collect the registers whose bits are set in <var>mask</var>.  <var>mask</var> is
+a hexadecimal number whose <var>i</var>'th bit is set if register number
+<var>i</var> should be collected.  (The least significant bit is numbered
+zero.)  Note that <var>mask</var> may be any number of digits long; it may
+not fit in a 32-bit word.
+
+          <br><dt>`<samp><span class="samp">M </span><var>basereg</var><span class="samp">,</span><var>offset</var><span class="samp">,</span><var>len</var></samp>'<dd>Collect <var>len</var> bytes of memory starting at the address in register
+number <var>basereg</var>, plus <var>offset</var>.  If <var>basereg</var> is
+`<samp><span class="samp">-1</span></samp>', then the range has a fixed address: <var>offset</var> is the
+address of the lowest byte to collect.  The <var>basereg</var>,
+<var>offset</var>, and <var>len</var> parameters are all unsigned hexadecimal
+values (the `<samp><span class="samp">-1</span></samp>' value for <var>basereg</var> is a special case).
+
+          <br><dt>`<samp><span class="samp">X </span><var>len</var><span class="samp">,</span><var>expr</var></samp>'<dd>Evaluate <var>expr</var>, whose length is <var>len</var>, and collect memory as
+it directs.  <var>expr</var> is an agent expression, as described in
+<a href="Agent-Expressions.html#Agent-Expressions">Agent Expressions</a>.  Each byte of the expression is encoded as a
+two-digit hex number in the packet; <var>len</var> is the number of bytes
+in the expression (and thus one-half the number of hex digits in the
+packet).
+
+     </dl>
+
+     <p>Any number of actions may be packed together in a single `<samp><span class="samp">QTDP</span></samp>'
+packet, as long as the packet does not exceed the maximum packet
+length (400 bytes, for many stubs).  There may be only one `<samp><span class="samp">R</span></samp>'
+action per tracepoint, and it must precede any `<samp><span class="samp">M</span></samp>' or `<samp><span class="samp">X</span></samp>'
+actions.  Any registers referred to by `<samp><span class="samp">M</span></samp>' and `<samp><span class="samp">X</span></samp>' actions
+must be collected by a preceding `<samp><span class="samp">R</span></samp>' action.  (The
+&ldquo;while-stepping&rdquo; actions are treated as if they were attached to a
+separate tracepoint, as far as these restrictions are concerned.)
+
+     <p>Replies:
+          <dl>
+<dt>`<samp><span class="samp">OK</span></samp>'<dd>The packet was understood and carried out. 
+<br><dt>`<samp></samp>'<dd>The packet was not recognized. 
+</dl>
+
+     <br><dt>`<samp><span class="samp">QTFrame:</span><var>n</var></samp>'<dd>Select the <var>n</var>'th tracepoint frame from the buffer, and use the
+register and memory contents recorded there to answer subsequent
+request packets from <span class="sc">gdb</span>.
+
+     <p>A successful reply from the stub indicates that the stub has found the
+requested frame.  The response is a series of parts, concatenated
+without separators, describing the frame we selected.  Each part has
+one of the following forms:
+
+          <dl>
+<dt>`<samp><span class="samp">F </span><var>f</var></samp>'<dd>The selected frame is number <var>n</var> in the trace frame buffer;
+<var>f</var> is a hexadecimal number.  If <var>f</var> is `<samp><span class="samp">-1</span></samp>', then there
+was no frame matching the criteria in the request packet.
+
+          <br><dt>`<samp><span class="samp">T </span><var>t</var></samp>'<dd>The selected trace frame records a hit of tracepoint number <var>t</var>;
+<var>t</var> is a hexadecimal number.
+
+     </dl>
+
+     <br><dt>`<samp><span class="samp">QTFrame:pc:</span><var>addr</var></samp>'<dd>Like `<samp><span class="samp">QTFrame:</span><var>n</var></samp>', but select the first tracepoint frame after the
+currently selected frame whose PC is <var>addr</var>;
+<var>addr</var> is a hexadecimal number.
+
+     <br><dt>`<samp><span class="samp">QTFrame:tdp:</span><var>t</var></samp>'<dd>Like `<samp><span class="samp">QTFrame:</span><var>n</var></samp>', but select the first tracepoint frame after the
+currently selected frame that is a hit of tracepoint <var>t</var>; <var>t</var>
+is a hexadecimal number.
+
+     <br><dt>`<samp><span class="samp">QTFrame:range:</span><var>start</var><span class="samp">:</span><var>end</var></samp>'<dd>Like `<samp><span class="samp">QTFrame:</span><var>n</var></samp>', but select the first tracepoint frame after the
+currently selected frame whose PC is between <var>start</var> (inclusive)
+and <var>end</var> (exclusive); <var>start</var> and <var>end</var> are hexadecimal
+numbers.
+
+     <br><dt>`<samp><span class="samp">QTFrame:outside:</span><var>start</var><span class="samp">:</span><var>end</var></samp>'<dd>Like `<samp><span class="samp">QTFrame:range:</span><var>start</var><span class="samp">:</span><var>end</var></samp>', but select the first
+frame <em>outside</em> the given range of addresses.
+
+     <br><dt>`<samp><span class="samp">QTStart</span></samp>'<dd>Begin the tracepoint experiment.  Begin collecting data from tracepoint
+hits in the trace frame buffer.
+
+     <br><dt>`<samp><span class="samp">QTStop</span></samp>'<dd>End the tracepoint experiment.  Stop collecting trace frames.
+
+     <br><dt>`<samp><span class="samp">QTinit</span></samp>'<dd>Clear the table of tracepoints, and empty the trace frame buffer.
+
+     <br><dt>`<samp><span class="samp">QTro:</span><var>start1</var><span class="samp">,</span><var>end1</var><span class="samp">:</span><var>start2</var><span class="samp">,</span><var>end2</var><span class="samp">:...</span></samp>'<dd>Establish the given ranges of memory as &ldquo;transparent&rdquo;.  The stub
+will answer requests for these ranges from memory's current contents,
+if they were not collected as part of the tracepoint hit.
+
+     <p><span class="sc">gdb</span> uses this to mark read-only regions of memory, like those
+containing program code.  Since these areas never change, they should
+still have the same contents they did when the tracepoint was hit, so
+there's no reason for the stub to refuse to provide their contents.
+
+     <br><dt>`<samp><span class="samp">qTStatus</span></samp>'<dd>Ask the stub if there is a trace experiment running right now.
+
+     <p>Replies:
+          <dl>
+<dt>`<samp><span class="samp">T0</span></samp>'<dd>There is no trace experiment running. 
+<br><dt>`<samp><span class="samp">T1</span></samp>'<dd>There is a trace experiment running. 
+</dl>
+
+   </dl>
+
+   </body></html>
+

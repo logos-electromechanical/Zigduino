@@ -1,0 +1,72 @@
+<html lang="en">
+<head>
+<title>Windows NT/2K/XP - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Using-the-parallel-port.html#Using-the-parallel-port" title="Using the parallel port">
+<link rel="prev" href="Using-the-parallel-port.html#Using-the-parallel-port" title="Using the parallel port">
+<link rel="next" href="Windows-95_002f98.html#Windows-95_002f98" title="Windows 95/98">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Windows-NT_002f2K_002fXP"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Windows-95_002f98.html#Windows-95_002f98">Windows 95/98</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Using-the-parallel-port.html#Using-the-parallel-port">Using the parallel port</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Using-the-parallel-port.html#Using-the-parallel-port">Using the parallel port</a>
+<hr><br>
+</div>
+
+<h5 class="subsubsection">A.2.4.1 Windows NT/2K/XP</h5>
+
+<p class="noindent">On Windows NT, 2000, and XP user applications cannot directly access the
+parallel port. However, kernel mode drivers can access the parallel port. 
+giveio.sys is a driver that can allow user applications to set the state
+of the parallel port pins.
+
+   <p>Before using AVRDUDE, the giveio.sys driver must be loaded. The
+accompanying command-line program, loaddrv.exe, can do just that.
+
+   <p>To make things even easier there are 3 batch files that are also
+included:
+
+     <ol type=1 start=1>
+<li>install_giveio.bat
+Install and start the giveio driver.
+
+     <li>status_giveio.bat
+Check on the status of the giveio driver.
+
+     <li>remove_giveio.bat
+Stop and remove the giveio driver from memory.
+        </ol>
+
+   <p>These 3 batch files calls the loaddrv program with various options to
+install, start, stop, and remove the driver.
+
+   <p>When you first execute install_giveio.bat, loaddrv.exe and giveio.sys
+must be in the current directory. When install_giveio.bat is executed it
+will copy giveio.sys from your current directory to your Windows
+directory. It will then load the driver from the Windows directory. This
+means that after the first time install_giveio is executed, you should
+be able to subsequently execute the batch file from any directory and have
+it successfully start the driver.
+
+   <p>Note that you must have administrator privilege to load the giveio driver.
+
+<!-- Node -->
+</body></html>
+

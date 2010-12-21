@@ -1,0 +1,2135 @@
+diff -Narup gdb-6.7.1/gdb/Makefile.in trunk/gdb/Makefile.in
+--- gdb/Makefile.in	2007-09-04 18:14:02.000000000 -0600
++++ gdb/Makefile.in	2008-02-25 03:48:06.000000000 -0700
+@@ -595,6 +595,7 @@ elf_internal_h =	$(INCLUDE_DIR)/elf/inte
+ elf_reloc_macros_h =	$(INCLUDE_DIR)/elf/reloc-macros.h
+ elf_sh_h =	$(INCLUDE_DIR)/elf/sh.h
+ elf_arm_h =	$(INCLUDE_DIR)/elf/arm.h $(elf_reloc_macros_h)
++elf_avr32_h =	$(INCLUDE_DIR)/elf/avr32.h $(elf_reloc_macros_h)
+ elf_bfd_h =	$(BFD_SRC)/elf-bfd.h
+ elf_frv_h =	$(INCLUDE_DIR)/elf/frv.h $(elf_reloc_macros_h)
+ elf_m32c_h =    $(INCLUDE_DIR)/elf/m32c.h $(elf_reloc_macros_h)
+@@ -662,6 +663,7 @@ annotate_h = annotate.h $(symtab_h) $(gd
+ arch_utils_h = arch-utils.h
+ arm_linux_tdep_h = arm-linux-tdep.h
+ arm_tdep_h = arm-tdep.h
++avr32_tdep_h = avr32-tdep.h
+ auxv_h = auxv.h
+ ax_gdb_h = ax-gdb.h
+ ax_h = ax.h $(doublest_h)
+@@ -1443,6 +1445,7 @@ ALLDEPFILES = \
+ 	arm-linux-nat.c arm-linux-tdep.c arm-tdep.c \
+ 	armnbsd-nat.c armbsd-tdep.c armnbsd-tdep.c armobsd-tdep.c \
+ 	avr-tdep.c \
++	avr32-linux-tdep.c avr32-tdep.c \
+ 	bsd-uthread.c bsd-kvm.c \
+ 	core-regset.c corelow.c \
+ 	dcache.c exec.c \
+@@ -1833,6 +1836,12 @@ avr-tdep.o: avr-tdep.c $(defs_h) $(frame
+ 	$(frame_base_h) $(trad_frame_h) $(gdbcmd_h) $(gdbcore_h) \
+ 	$(inferior_h) $(symfile_h) $(arch_utils_h) $(regcache_h) \
+ 	$(gdb_string_h) $(dis_asm_h) $(gdbtypes_h)
++avr32-linux-tdep.o: avr32-linux-tdep.c $(defs_h) $(target_h) \
++	$(solib_svr4_h) $(osabi_h) $(avr32_tdep_h)
++avr32-tdep.o: avr32-tdep.c $(defs_h) $(frame_h) $(frame_unwind_h) \
++	$(dwarf2_frame_h) $(inferior_h) $(gdbcore_h) $(dis_asm_h) \
++	$(osabi_h) $(regcache_h) $(arch_utils_h) $(avr32_tdep_h) \
++	$(elf_bfd_h) $(elf_avr32_h) $(gdb_assert_h)
+ ax-gdb.o: ax-gdb.c $(defs_h) $(symtab_h) $(symfile_h) $(gdbtypes_h) \
+ 	$(value_h) $(expression_h) $(command_h) $(gdbcmd_h) $(frame_h) \
+ 	$(target_h) $(ax_h) $(ax_gdb_h) $(gdb_string_h) $(block_h) \
+diff -Narup gdb-6.7.1/gdb/avr32-linux-tdep.c trunk/gdb/avr32-linux-tdep.c
+--- gdb/avr32-linux-tdep.c	1969-12-31 17:00:00.000000000 -0700
++++ gdb/avr32-linux-tdep.c	2008-02-27 23:11:21.000000000 -0700
+@@ -0,0 +1,109 @@
++/* GNU/Linux on AVR32 target support.
++   Copyright 2004-2006 Atmel Corporation.
++
++   Written by Haavard Skinnemoen, Atmel Norway, <hskinnemoen@atmel.com>
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "target.h"
++#include "solib-svr4.h"
++#include "osabi.h"
++
++#include "avr32-tdep.h"
++
++/* Fetch, and possibly build, an appropriate link_map_offsets
++   structure for AVR32 linux targets using the struct offsets defined
++   in <link.h>.  Note, however, that link.h is not actually referred
++   to in this file.  Instead, the relevant structs offsets were
++   obtained from examining link.h.  (We can't refer to link.h from
++   this file because the host system won't necessarily have it, or if
++   it does, the structs which it defines will refer to the host
++   system, not the target).
++
++   The following information is derived from uClibc's link.h  */
++
++static struct link_map_offsets *
++avr32_linux_fetch_link_map_offsets (void)
++{
++  static struct link_map_offsets lmo;
++  static struct link_map_offsets *lmp = NULL;
++
++  if (lmp == NULL)
++    {
++      lmp = &lmo;
++
++      /* Size of struct r_debug */
++      lmo.r_version_offset = 0;
++      lmo.r_version_size = 4;
++      lmo.r_map_offset = 4;
++
++      lmo.link_map_size = 20;
++      lmo.l_addr_offset = 0;
++      lmo.l_name_offset = 4;
++      lmo.l_ld_offset = 8;
++      lmo.l_next_offset = 12;
++      lmo.l_prev_offset = 16;
++    }
++
++  return lmp;
++}
++
++/* This corresponds with the layout of struct pt_regs from <asm/ptrace.h> */
++static int avr32_linux_gregset_reg_offset[] =
++  {
++    16 * 4,		/*  r0 */
++    15 * 4,		/*  r1 */
++    14 * 4,		/*  r2 */
++    13 * 4,		/*  r3 */
++    12 * 4,		/*  r4 */
++    11 * 4,		/*  r5 */
++    10 * 4,		/*  r6 */
++    9 * 4,		/*  r7 */
++    8 * 4,		/*  r8 */
++    7 * 4,		/*  r9 */
++    6 * 4,		/* r10 */
++    5 * 4,		/* r11 */
++    4 * 4,		/* r12 */
++    3 * 4,		/*  sp */
++    2 * 4,		/*  lr */
++    1 * 4,		/*  pc */
++    /* sr at offset 0 */
++    /* orig_r12 at offset 17 * 4 */
++  };
++
++static void
++avr32_linux_init_abi(struct gdbarch_info info,
++		     struct gdbarch *gdbarch)
++{
++  struct gdbarch_tdep *tdep = gdbarch_tdep(gdbarch);
++
++  tdep->gregset_reg_offset = avr32_linux_gregset_reg_offset;
++  tdep->gregset_num_regs = ARRAY_SIZE(avr32_linux_gregset_reg_offset);
++  tdep->sizeof_gregset = 18 * 4;
++
++  set_solib_svr4_fetch_link_map_offsets
++    (gdbarch, avr32_linux_fetch_link_map_offsets);
++}
++
++void
++_initialize_avr32_linux_tdep(void)
++{
++  gdbarch_register_osabi(bfd_arch_avr32, 0, GDB_OSABI_LINUX,
++			 avr32_linux_init_abi);
++}
+diff -Narup gdb-6.7.1/gdb/avr32-tdep.c trunk/gdb/avr32-tdep.c
+--- gdb/avr32-tdep.c	1969-12-31 17:00:00.000000000 -0700
++++ gdb/avr32-tdep.c	2008-02-26 02:02:22.000000000 -0700
+@@ -0,0 +1,794 @@
++/* Common target dependent code for GDB on AVR32 systems.
++   Copyright 2004-2006 Atmel Corporation.
++
++   Written by Haavard Skinnemoen, Atmel Norway, <hskinnemoen@atmel.com>
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "frame.h"
++#include "frame-base.h"
++#include "frame-unwind.h"
++#include "dwarf2-frame.h"
++#include "inferior.h"
++#include "gdbcmd.h"
++#include "gdbcore.h"
++#include "dis-asm.h"
++#include "osabi.h"
++#include "regcache.h"
++#include "regset.h"
++#include "arch-utils.h"
++#include "gdb_string.h"
++
++#include "avr32-tdep.h"
++#include "elf-bfd.h"
++#include "elf/avr32.h"
++
++#include "gdb_assert.h"
++
++/* 0xd673 is the BREAKPOINT instruction */
++static unsigned char avr32_default_breakpoint[] = { 0xd6, 0x73 };
++
++/* Use the same register numbering as GCC */
++enum {
++  AVR32_REG_R0 = 0,
++  AVR32_REG_R1,
++  AVR32_REG_R2,
++  AVR32_REG_R3,
++  AVR32_REG_R4,
++  AVR32_REG_R5,
++  AVR32_REG_R6,
++  AVR32_REG_R7,
++  AVR32_REG_R8,
++  AVR32_REG_R9,
++  AVR32_REG_R10,
++  AVR32_REG_R11,
++  AVR32_REG_R12,
++  AVR32_REG_SP,
++  AVR32_REG_LR,
++  AVR32_REG_PC,
++  AVR32_NUM_REGS
++};
++
++#define AVR32_REG_FP AVR32_REG_R7
++
++struct avr32_frame_cache
++{
++  CORE_ADDR base;
++  LONGEST sp_offset;
++  CORE_ADDR pc;
++
++  int uses_fp;
++
++  CORE_ADDR saved_regs[AVR32_NUM_REGS];
++  CORE_ADDR saved_sp;
++};
++
++static struct type *
++avr32_register_type(struct gdbarch *gdbarch, int reg_nr)
++{
++  return builtin_type_int;
++}
++
++static const char *
++avr32_register_name(struct gdbarch *gdbarch, int reg_nr)
++{
++  static const char *register_names[] =
++    {
++      "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
++      "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"
++    };
++
++  if (reg_nr < 0)
++    return NULL;
++  if (reg_nr >= sizeof(register_names) / sizeof(*register_names))
++    return NULL;
++  return register_names[reg_nr];
++}
++
++static void
++avr32_show_regs_command (char *argv, int from_tty)
++{
++    struct frame_info *frame;
++    frame = get_current_frame();/* need current scope */
++    
++  printf_filtered ("pc: %08lx  lr: %08lx  sp: %08lx  r12: %08lx\n",
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_PC),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_LR),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_SP),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R12));
++  printf_filtered ("r11: %08lx  r10: %08lx   r9: %08lx   r8: %08lx\n",
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R11),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R10),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R9),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R8));
++  printf_filtered (" r7: %08lx   r6: %08lx   r5: %08lx   r4: %08lx\n",
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R7),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R6),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R5),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R4));
++  printf_filtered (" r3: %08lx   r2: %08lx   r1: %08lx   r0: %08lx\n",
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R3),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R2),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R1),
++		   (unsigned long)get_frame_register_unsigned (frame, AVR32_REG_R0));
++}
++
++static void
++avr32_set_sysreg_command(char *args, int from_tty)
++{
++  LONGEST ret;
++  CORE_ADDR addr, value;
++  char *eq, *value_s, *endptr;
++  char buffer[4];
++
++  if (!args)
++    goto show_usage;
++
++  eq = strchr(args, '=');
++  if (!eq)
++    goto show_usage;
++
++  value_s = eq + 1;
++  *eq = 0;
++
++  addr = strtoul(args, &endptr, 0);
++  if (*args == '\0' || *endptr != '\0')
++    goto show_usage;
++
++  value = strtoul(value_s, &endptr, 0);
++  if (*value_s == '\0' || *endptr != '\0')
++    goto show_usage;
++
++  store_unsigned_integer(buffer, 4, value);
++
++  ret = target_write(&current_target, TARGET_OBJECT_SYSREG, "",
++		     buffer, addr, 4);
++  if (ret != 4)
++    printf_unfiltered("Failed to write system register %lu.\n", addr);
++
++  return;
++
++show_usage:
++  printf_unfiltered("\"set sysreg\" must be followed by SYSREG=VALUE.\n");
++}
++
++static void
++avr32_show_sysreg_command(char *args, int from_tty)
++{
++  LONGEST ret;
++  CORE_ADDR addr, value;
++  char *endptr;
++  char value_raw[4];
++
++  if (!args)
++    goto show_usage;
++
++  addr = strtoul(args, &endptr, 0);
++  if (*args == '\0' || *endptr != '\0')
++    goto show_usage;
++
++  ret = target_read(&current_target, TARGET_OBJECT_SYSREG, "",
++		    value_raw, addr, 4);
++  if (ret != 4)
++    printf_unfiltered("Failed to read system register %lu.\n", addr);
++  else
++    {
++      value = extract_unsigned_integer(value_raw, 4);
++      printf_unfiltered("SYSREG[%lu] = 0x%lx\n", addr, value);
++    }
++
++  return;
++
++show_usage:
++  printf_unfiltered("\"show sysreg\" must be followed by a system register.\n");
++}
++
++static const unsigned char *
++avr32_breakpoint_from_pc(struct gdbarch *gdbarch, CORE_ADDR *pcptr, int *lenptr)
++{
++  struct gdbarch_tdep *tdep = gdbarch_tdep(gdbarch);
++
++  *lenptr = tdep->avr32_breakpoint_size;
++  return tdep->avr32_breakpoint;
++}
++
++static int
++gdb_print_insn_avr32(bfd_vma memaddr, disassemble_info *info)
++{
++  info->endian = gdbarch_byte_order(current_gdbarch);
++  return print_insn_avr32(memaddr, info);
++}
++
++static void
++avr32_write_pc(struct regcache *regcache, CORE_ADDR pc)
++{
++  regcache_cooked_write_unsigned (regcache, AVR32_REG_PC,
++                  (pc & 0xffffffff));
++
++}
++
++/* Determine, for architecture GDBARCH, how a return value of TYPE
++   should be returned.  If it is supposed to be returned in registers,
++   and READBUF is non-zero, read the appropriate value from REGCACHE,
++   and copy it into READBUF.  If WRITEBUF is non-zero, write the value
++   from WRITEBUF into REGCACHE.  */
++
++static enum return_value_convention
++avr32_return_value(struct gdbarch *gdbarch, struct type *type,
++		   struct regcache *regcache, gdb_byte *readbuf,
++		   const gdb_byte *writebuf)
++{
++  enum type_code code = TYPE_CODE(type);
++  int len = TYPE_LENGTH(type);
++
++  if (code == TYPE_CODE_STRUCT || code == TYPE_CODE_UNION)
++    {
++      /* The IAR Compiler Reference says that:
++
++      "If a structure is returned, the caller passes a pointer to a
++      location where the called function should write the result. The
++      pointer is passed in register R12. The called function must
++      return the same pointer in register R12."
++
++      Assuming GCC provides the same guarantee, this should go into
++      the Linux/AVR32 ABI document. */
++
++      if (readbuf)
++	{
++	  ULONGEST addr;
++
++	  regcache_raw_read_unsigned(regcache, AVR32_REG_R12, &addr);
++	  read_memory(addr, readbuf, TYPE_LENGTH(type));
++	}
++
++      return RETURN_VALUE_ABI_RETURNS_ADDRESS;
++    }
++
++  if (readbuf)
++    {
++      if (len <= 4)
++	regcache_raw_read(regcache, AVR32_REG_R12, readbuf);
++      else if (len <= 8)
++	{
++	  regcache_raw_read(regcache, AVR32_REG_R10, readbuf);
++	  regcache_raw_read(regcache, AVR32_REG_R11, (char *)readbuf + 4);
++	}
++      else
++	internal_error(__FILE__, __LINE__,
++		       "Cannot extract return value of %d bytes long.", len);
++    }
++  if (writebuf)
++    {
++      if (len <= 4)
++	regcache_raw_write_part(regcache, AVR32_REG_R12, 0, len, writebuf);
++      else if (len <= 8)
++	{
++	  regcache_raw_write(regcache, AVR32_REG_R10, writebuf);
++	  regcache_raw_write_part(regcache, AVR32_REG_R11, 0,
++				  len - 4, (char *)writebuf + 4);
++	}
++      else
++	internal_error(__FILE__, __LINE__,
++		       "Cannot store return value of %d bytes long.", len);
++    }
++
++  return RETURN_VALUE_REGISTER_CONVENTION;
++}
++
++static int
++sign_extend (int value, int bits)
++{
++  value = value & ((1 << bits) - 1);
++  return (value & (1 << (bits - 1))
++          ? value | (~((1 << bits) - 1))
++          : value);
++}
++
++#define IS_EXTENDED(x)		(((x) & 0xe0000000) == 0xe0000000)
++/* pushm {reglist} */
++#define IS_PUSHM(x)		(((x) & 0xf00f0000) == 0xd0010000)
++/* stm --sp, {reglist} */
++#define IS_STM_MMSP(x)		(((x) & 0xffff0000) == 0xebcd0000)
++/* st.w --sp, {reg} */
++#define IS_PUSH(x)		(((x) & 0xfff00000) == 0x1aa00000)
++/* mov fp, sp */
++#define IS_MOV_FP_SP(x)		(((x) & 0xffff0000) == 0x1a970000)
++/* sub sp, {imm} */
++#define IS_SUB_SP_IMM_C(x)	(((x) & 0xf00f0000) == 0x200d0000)
++#define IS_SUB_SP_IMM_E(x)	(((x) & 0xe1ef0000) == 0xe02d0000)
++
++#define GET_PUSH_SRCREG(x)	(((x) >> 16) & 0xf)
++#define GET_SUB_IMM_C(x)	sign_extend(((x) >> 20) & 0xff, 8)
++#define GET_SUB_IMM_E(x)	sign_extend(((x) & 0xffff)		\
++					    | (((x) >> 4) & 0x10000)	\
++					    | (((x) >> 8) & 0x1e0000),	\
++					    21)
++
++/* Analyze the prologue of the function starting at pc. The function
++   will not be analyzed further than current_pc, which indicates how
++   much of the function has actually been executed.  */
++static CORE_ADDR
++avr32_analyze_prologue (CORE_ADDR pc, CORE_ADDR current_pc,
++			struct avr32_frame_cache *cache)
++{
++  ULONGEST insn;
++  CORE_ADDR opc;
++
++  if (pc >= current_pc)
++    return current_pc;
++
++  cache->uses_fp = 0;
++  while (pc < current_pc)
++    {
++      insn = read_memory_unsigned_integer(pc, 2) << 16;
++      if (IS_EXTENDED(insn))
++	  insn = read_memory_unsigned_integer(pc, 4);
++
++      if (IS_PUSHM(insn))
++	{
++	  if (insn & 0x00100000)
++	    {
++	      cache->saved_regs[0] = cache->sp_offset;
++	      cache->saved_regs[1] = cache->sp_offset + 4;
++	      cache->saved_regs[2] = cache->sp_offset + 8;
++	      cache->saved_regs[3] = cache->sp_offset + 12;
++	      cache->sp_offset += 16;
++	    }
++	  if (insn & 0x00200000)
++	    {
++	      cache->saved_regs[4] = cache->sp_offset;
++	      cache->saved_regs[5] = cache->sp_offset + 4;
++	      cache->saved_regs[6] = cache->sp_offset + 8;
++	      cache->saved_regs[7] = cache->sp_offset + 12;
++	      cache->sp_offset += 16;
++	    }
++	  if (insn & 0x00400000)
++	    {
++	      cache->saved_regs[8] = cache->sp_offset;
++	      cache->saved_regs[9] = cache->sp_offset + 4;
++	      cache->sp_offset += 8;
++	    }
++	  if (insn & 0x00800000)
++	    {
++	      cache->saved_regs[10] = cache->sp_offset;
++	      cache->sp_offset += 4;
++	    }
++	  if (insn & 0x01000000)
++	    {
++	      cache->saved_regs[11] = cache->sp_offset;
++	      cache->sp_offset += 4;
++	    }
++	  if (insn & 0x02000000)
++	    {
++	      cache->saved_regs[12] = cache->sp_offset;
++	      cache->sp_offset += 4;
++	    }
++	  if (insn & 0x04000000)
++	    {
++	      cache->saved_regs[14] = cache->sp_offset;
++	      cache->sp_offset += 4;
++	    }
++	  if (insn & 0x08000000)
++	    {
++	      cache->saved_regs[15] = cache->sp_offset;
++	      cache->sp_offset += 4;
++	    }
++	}
++      if (IS_STM_MMSP(insn))
++	{
++	  int i;
++
++	  for (i = 0; i < 16; i++)
++	    {
++	      if (insn & (1 << i))
++		{
++		  cache->saved_regs[i] = cache->sp_offset;
++		  cache->sp_offset += 4;
++		}
++	    }
++	}
++      else if (IS_PUSH(insn))
++	{
++	  cache->saved_regs[GET_PUSH_SRCREG(insn)] = cache->sp_offset;
++	  cache->sp_offset += 4;
++	}
++      else if (IS_MOV_FP_SP(insn))
++	{
++	  cache->uses_fp = 1;
++	  cache->base = cache->sp_offset;
++	}
++      else if (IS_SUB_SP_IMM_C(insn))
++	{
++	  cache->sp_offset -= GET_SUB_IMM_C(insn);
++	}
++      else if (IS_SUB_SP_IMM_E(insn))
++	{
++	  cache->sp_offset -= GET_SUB_IMM_E(insn);
++	}
++      else
++	break;
++
++      if (IS_EXTENDED(insn))
++	pc += 4;
++      else
++	pc += 2;
++    }
++
++  return pc;
++}
++
++/* Return PC of first real instruction.
++
++   We assume the following prologue (all steps are optional):
++
++   A "pushm ..." or "stm --sp, ..." instruction to handle callee-saved
++   registers.
++
++   A "mov r7,sp" instruction to set up the frame pointer.
++
++   A "sub sp, x" instruction to allocate space for local variables. */
++
++static CORE_ADDR
++avr32_skip_prologue(struct gdbarch *gdbarch, CORE_ADDR start_pc)
++{
++  unsigned char insn[4];
++  CORE_ADDR pc = start_pc;
++
++  /* Check if any registers are saved. If not, we may safely(?) assume
++     that the other steps aren't taken */
++  read_memory(pc, (char *)insn, sizeof(insn));
++  if ((insn[0] & 0xf0) == 0xd0 && (insn[1] & 0x0f) == 0x01)
++    /* pushm instruction */
++    pc += 2;
++  else if (insn[0] == 0xeb && insn[1] == 0xcd)
++    /* stm --sp instruction */
++    pc += 4;
++  else
++    /* assuming no prologue */
++    return pc;
++
++  /* Check for frame pointer initialization */
++  read_memory(pc, (char *)insn, sizeof(insn));
++  if (insn[0] == 0x1a && insn[1] == 0x97)
++    /* mov r7, sp */
++    pc += 2;
++
++  /* Check for stack frame allocation */
++  read_memory(pc, (char *)insn, sizeof(insn));
++  if ((insn[0] & 0xf0) == 0x20 && (insn[1] & 0x0f) == 0x0d)
++    /* sub sp, x where -512 <= x <= 508 and x & 3 == 0 */
++    pc += 2;
++  else if ((insn[0] & 0xe1) == 0xe0 && (insn[1] & 0xef) == 0x2d)
++    /* sub sp, x for really large (or strange) stack frames */
++    pc += 4;
++
++  return pc;
++}
++
++static CORE_ADDR
++avr32_frame_align(struct gdbarch *gdbarch, CORE_ADDR sp)
++{
++  return sp & ~3;
++}
++
++static CORE_ADDR
++avr32_unwind_sp(struct gdbarch *gdbarch, struct frame_info *next_frame)
++{
++  char buf[sizeof(long)];
++  frame_unwind_register(next_frame, AVR32_REG_SP, buf);
++  return extract_unsigned_integer(buf, sizeof(buf));
++}
++
++static CORE_ADDR
++avr32_unwind_pc(struct gdbarch *gdbarch, struct frame_info *next_frame)
++{
++  char buf[sizeof(long)];
++  frame_unwind_register(next_frame, AVR32_REG_PC, buf);
++  return extract_unsigned_integer(buf, sizeof(buf));
++}
++
++static struct frame_id
++avr32_unwind_dummy_id(struct gdbarch *gdbarch, struct frame_info *next_frame)
++{
++  return frame_id_build(avr32_unwind_sp(gdbarch, next_frame),
++			frame_pc_unwind(next_frame));
++}
++
++static struct avr32_frame_cache *
++avr32_alloc_frame_cache (void)
++{
++  struct avr32_frame_cache *cache;
++  int i;
++
++  cache = FRAME_OBSTACK_ZALLOC (struct avr32_frame_cache);
++
++  for (i = 0; i < AVR32_NUM_REGS; i++)
++    cache->saved_regs[i] = -1;
++
++  return cache;
++}
++
++static struct avr32_frame_cache *
++avr32_frame_cache (struct frame_info *next_frame, void **this_cache)
++{
++  struct avr32_frame_cache *cache;
++  CORE_ADDR current_pc;
++  int i;
++
++  if (*this_cache)
++    return *this_cache;
++
++  cache = avr32_alloc_frame_cache();
++  *this_cache = cache;
++
++  /* FP is supposed to hold the frame pointer, but this is actually
++     almost never the case. */
++  cache->base = frame_unwind_register_unsigned (next_frame, AVR32_REG_FP);
++
++  cache->pc = frame_func_unwind (next_frame,NORMAL_FRAME);
++  current_pc = frame_pc_unwind (next_frame);
++  if (cache->pc != 0)
++    avr32_analyze_prologue (cache->pc, current_pc, cache);
++
++  if (!cache->uses_fp)
++    {
++      /* We have no frame pointer, which means that unwinding will be
++	 a bit tricky.  Assume that no stack-arguments are passed to
++	 this function.  */
++      cache->base = frame_unwind_register_unsigned (next_frame, AVR32_REG_SP);
++    }
++
++  cache->saved_sp = cache->base + cache->sp_offset;
++
++  /* Adjust all the saved registers so that they contain addresses
++     instead of offsets.  */
++  for (i = 0; i < AVR32_NUM_REGS; i++)
++    if (cache->saved_regs[i] != -1)
++      cache->saved_regs[i] = cache->saved_sp - cache->saved_regs[i] - 4;
++
++  return cache;
++}
++
++static void
++avr32_frame_prev_register (struct frame_info *next_frame, void **this_cache,
++			   int regnum, int *optimizedp,
++			   enum lval_type *lvalp, CORE_ADDR *addrp,
++			   int *realnump, gdb_byte *valuep)
++{
++  struct avr32_frame_cache *cache = avr32_frame_cache(next_frame, this_cache);
++
++  gdb_assert (regnum >= 0);
++
++  if (regnum == gdbarch_sp_regnum(current_gdbarch) && cache->saved_sp)
++    {
++      *optimizedp = 0;
++      *lvalp = not_lval;
++      *addrp = 0;
++      *realnump = -1;
++      if (valuep)
++	store_unsigned_integer(valuep, 4, cache->saved_sp);
++      return;
++    }
++
++  /* The PC of the previous frame is stored in LR of the current frame. */
++  if (regnum == AVR32_REG_PC)
++    regnum = AVR32_REG_LR;
++
++  if (regnum < AVR32_NUM_REGS && cache->saved_regs[regnum] != -1)
++    {
++      *optimizedp = 0;
++      *lvalp = lval_memory;
++      *addrp = cache->saved_regs[regnum];
++      *realnump = -1;
++      if (valuep)
++	read_memory(*addrp, valuep, register_size(current_gdbarch, regnum));
++      return;
++    }
++
++  *optimizedp = 0;
++  *lvalp = lval_register;
++  *addrp = 0;
++  *realnump = regnum;
++  if (valuep)
++    frame_unwind_register (next_frame, (*realnump), valuep);
++}
++
++static void
++avr32_frame_this_id (struct frame_info *next_frame, void **this_cache,
++		     struct frame_id *this_id)
++{
++  struct avr32_frame_cache *cache = avr32_frame_cache (next_frame, this_cache);
++
++  /* This marks the outermost frame.  */
++  if (cache->base == 0)
++    return;
++
++  *this_id = frame_id_build (cache->saved_sp, cache->pc);
++}
++
++static const struct frame_unwind avr32_frame_unwind = {
++  NORMAL_FRAME,
++  avr32_frame_this_id,
++  avr32_frame_prev_register
++};
++
++/* Default unwind sniffer. This one must always return something */
++static const struct frame_unwind *
++avr32_frame_sniffer (struct frame_info *next_frame)
++{
++  return &avr32_frame_unwind;
++}
++
++/* Supply register REGNUM from the buffer specified by GREGS and LEN
++   in the general-purpose register set REGSET to register cache
++   REGCACHE.  If REGNUM is -1, do this for all registers in REGSET.  */
++
++static void
++avr32_supply_gregset(const struct regset *regset, struct regcache *regcache,
++		     int regnum, const void *gregs, size_t len)
++{
++  const struct gdbarch_tdep *tdep = gdbarch_tdep(regset->arch);
++  const char *regs = gregs;
++  int i;
++
++  gdb_assert(len == tdep->sizeof_gregset);
++
++  for (i = 0; i < tdep->gregset_num_regs; i++)
++    {
++      if ((regnum == i || regnum == -1)
++	  && tdep->gregset_reg_offset[i] != -1)
++	regcache_raw_supply(regcache, i, regs + tdep->gregset_reg_offset[i]);
++    }
++}
++
++/* Collect register REGNUM from the register cache REGCACHE and store
++   it in the buffer specified by GREGS and LEN as described by the
++   general-purpose register set REGSET.  If REGNUM is -1, do this for
++   all registers in REGSET.  */
++
++static void
++avr32_collect_gregset(const struct regset *regset,
++		      const struct regcache *regcache,
++		      int regnum, void *gregs, size_t len)
++{
++  const struct gdbarch_tdep *tdep = gdbarch_tdep(regset->arch);
++  char *regs = gregs;
++  int i;
++
++  for (i = 0; i < tdep->gregset_num_regs; i++)
++    {
++      if ((regnum == i || regnum == -1)
++	  && tdep->gregset_reg_offset[i] != -1)
++	regcache_raw_collect(regcache, i, regs + tdep->gregset_reg_offset[i]);
++    }
++}
++
++static const struct regset *
++avr32_regset_from_core_section(struct gdbarch *gdbarch,
++			       const char *sect_name, size_t sect_size)
++{
++  struct gdbarch_tdep *tdep = gdbarch_tdep(gdbarch);
++
++  if (strcmp(sect_name, ".reg") == 0 && sect_size == tdep->sizeof_gregset)
++    {
++      if (tdep->gregset == NULL)
++	tdep->gregset = regset_alloc(gdbarch, avr32_supply_gregset,
++				     avr32_collect_gregset);
++      return tdep->gregset;
++    }
++
++  return NULL;
++}
++
++/* Initialize the current architecture based on INFO.  If possible,
++   re-use an architecture from ARCHES, which is a list of
++   architectures already created during this debugging session.
++
++   Called e.g. at program startup, when reading a core file, and when
++   reading a binary file.  */
++
++static struct gdbarch *
++avr32_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
++{
++  struct gdbarch *gdbarch;
++  struct gdbarch_tdep *tdep;
++
++  /* If there is already a candidate, use it. */
++  arches = gdbarch_list_lookup_by_info(arches, &info);
++  if (arches != NULL)
++    return arches->gdbarch;
++
++  /* None found, create a new architecture from the information
++     provided. */
++  tdep = xmalloc(sizeof(struct gdbarch_tdep));
++  gdbarch = gdbarch_alloc(&info, tdep);
++
++  /* Corefile: General-purpose registers.  Real values are filled in
++     by OS-specific init.  */
++  tdep->gregset = NULL;
++  tdep->gregset_reg_offset = NULL;
++  tdep->gregset_num_regs = 0;
++  tdep->sizeof_gregset = 0;
++
++  /* Breakpoints */
++  tdep->avr32_breakpoint = avr32_default_breakpoint;
++  tdep->avr32_breakpoint_size = sizeof(avr32_default_breakpoint);
++
++  set_gdbarch_short_bit(gdbarch, 16);
++  set_gdbarch_int_bit(gdbarch, 32);
++  set_gdbarch_long_bit(gdbarch, 32);
++  set_gdbarch_long_long_bit(gdbarch, 64);
++  set_gdbarch_float_bit(gdbarch, 32);
++  set_gdbarch_double_bit(gdbarch, 64);
++  set_gdbarch_long_double_bit(gdbarch, 64);
++  set_gdbarch_ptr_bit(gdbarch, 32);
++
++  set_gdbarch_num_regs(gdbarch, AVR32_NUM_REGS);
++  set_gdbarch_sp_regnum(gdbarch, AVR32_REG_SP);
++  set_gdbarch_pc_regnum(gdbarch, AVR32_REG_PC);
++  /* FIXME: What exactly is fp0? */
++  set_gdbarch_fp0_regnum(gdbarch, -1);
++  /* XXX: Should SR be a pseudo-register? */
++  set_gdbarch_ps_regnum(gdbarch, -1);
++  set_gdbarch_num_pseudo_regs(gdbarch, 0);
++
++  set_gdbarch_register_type(gdbarch, avr32_register_type);
++  set_gdbarch_register_name(gdbarch, avr32_register_name);
++  set_gdbarch_breakpoint_from_pc(gdbarch, avr32_breakpoint_from_pc);
++  set_gdbarch_print_insn(gdbarch, gdb_print_insn_avr32);
++  set_gdbarch_write_pc(gdbarch, avr32_write_pc);
++
++  set_gdbarch_return_value(gdbarch, avr32_return_value);
++
++  set_gdbarch_skip_prologue(gdbarch, avr32_skip_prologue);
++  set_gdbarch_inner_than(gdbarch, core_addr_lessthan);
++
++  set_gdbarch_frame_align(gdbarch, avr32_frame_align);
++  set_gdbarch_unwind_sp(gdbarch, avr32_unwind_sp);
++  set_gdbarch_unwind_pc(gdbarch, avr32_unwind_pc);
++  set_gdbarch_unwind_dummy_id(gdbarch, avr32_unwind_dummy_id);
++
++  gdbarch_init_osabi(info, gdbarch);
++
++  /* If the OS ABI provided a register mapping, enable the generic
++     core file support (unless it has already been enabled.)  */
++  if (tdep->gregset_reg_offset
++      && !gdbarch_regset_from_core_section_p(gdbarch))
++    set_gdbarch_regset_from_core_section(gdbarch,
++					 avr32_regset_from_core_section);
++
++  frame_unwind_append_sniffer(gdbarch, dwarf2_frame_sniffer);
++  frame_unwind_append_sniffer(gdbarch, avr32_frame_sniffer);
++
++  return gdbarch;
++}
++
++void
++_initialize_avr32_tdep(void)
++{
++  gdbarch_register(bfd_arch_avr32, avr32_gdbarch_init, NULL);
++
++  /* "set sysreg NAME=VALUE"/"show sysreg NAME" */
++  add_cmd("sysreg", class_vars, avr32_set_sysreg_command,
++	  "Write VALUE to system register NAME.", &setlist);
++  add_cmd("sysreg", class_vars, avr32_show_sysreg_command,
++	  "Show the value of system register NAME.", &showlist);
++
++  add_com("regs", class_vars, avr32_show_regs_command, "Print all registers");
++}
+diff -Narup gdb-6.7.1/gdb/avr32-tdep.h trunk/gdb/avr32-tdep.h
+--- gdb/avr32-tdep.h	1969-12-31 17:00:00.000000000 -0700
++++ gdb/avr32-tdep.h	2006-08-10 04:41:11.000000000 -0600
+@@ -0,0 +1,39 @@
++/* Common target dependent code for GDB on AVR32 systems.
++   Copyright 2004-2006 Atmel Corporation.
++
++   Written by Haavard Skinnemoen, Atmel Norway, <hskinnemoen@atmel.com>
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#ifndef AVR32_TDEP_H
++#define AVR32_TDEP_H
++
++struct regset;
++
++struct gdbarch_tdep
++{
++  const unsigned char *avr32_breakpoint;	/* Breakpoint instruction pattern */
++  int avr32_breakpoint_size;	/* And its size */
++
++  struct regset *gregset;
++  int *gregset_reg_offset;
++  int gregset_num_regs;
++  size_t sizeof_gregset;
++};
++
++#endif /* AVR32_TDEP_H */
+diff -Narup gdb-6.7.1/gdb/config/avr32/embed.mt trunk/gdb/config/avr32/embed.mt
+--- gdb/config/avr32/embed.mt	1969-12-31 17:00:00.000000000 -0700
++++ gdb/config/avr32/embed.mt	2006-08-10 04:41:11.000000000 -0600
+@@ -0,0 +1,2 @@
++# Target: AVR32 embedded system
++TDEPFILES= avr32-tdep.o
+diff -Narup gdb-6.7.1/gdb/config/avr32/linux.mt trunk/gdb/config/avr32/linux.mt
+--- gdb/config/avr32/linux.mt	1969-12-31 17:00:00.000000000 -0700
++++ gdb/config/avr32/linux.mt	2008-02-27 07:12:25.000000000 -0700
+@@ -0,0 +1,3 @@
++# Target: AVR32 based machine running GNU/Linux
++
++TDEPFILES=avr32-tdep.o avr32-linux-tdep.o solib.o solib-svr4.o corelow.o
+diff -Narup gdb-6.7.1/gdb/config/avr32/tm-linux.h trunk/gdb/config/avr32/tm-linux.h
+--- gdb/config/avr32/tm-linux.h	1969-12-31 17:00:00.000000000 -0700
++++ gdb/config/avr32/tm-linux.h	2006-08-10 04:41:11.000000000 -0600
+@@ -0,0 +1,28 @@
++/* Target definitions for GNU/Linux on AVR32, for GDB.
++   Copyright 2005, 2006 Atmel Corporation.
++
++   Written by Haavard Skinnemoen, Atmel Norway, <hskinnemoen@atmel.com>
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#ifndef TM_AVR32LINUX_H
++#define TM_AVR32LINUX_H
++
++#include "config/tm-linux.h"
++
++#endif /* TM_AVR32LINUX_H */
+--- gdb/configure.tgt.orig	2008-02-11 14:58:41.000000000 -0700
++++ gdb/configure.tgt	2009-04-09 16:33:52.209874500 -0600
+@@ -102,6 +102,18 @@ avr-*-*)
+ 	# support for gdb.
+ 	;;
+ 
++avr32-*-linux*)
++	# Target: AVR32 running GNU/Linux
++	gdb_target_obs="avr32-tdep.o avr32-linux-tdep.o corelow.o solib.o \
++			solib-svr4.o symfile-mem.o"
++	build_gdbserver=yes
++	;;
++
++avr32-*-*)
++	# Target: AVR32 embedded system
++	gdb_target_obs="avr32-tdep.o"
++	;;
++
+ cris*)
+ 	# Target: CRIS
+ 	gdb_target_obs="cris-tdep.o corelow.o solib.o solib-svr4.o"
+--- gdb/gdbserver/Makefile.in.orig	2008-02-11 15:00:31.000000000 -0700
++++ gdb/gdbserver/Makefile.in	2009-04-09 16:43:02.047006100 -0600
+@@ -121,6 +121,7 @@ SFILES=	$(srcdir)/gdbreplay.c $(srcdir)/
+ 	$(srcdir)/remote-utils.c $(srcdir)/server.c $(srcdir)/target.c \
+ 	$(srcdir)/thread-db.c $(srcdir)/utils.c \
+ 	$(srcdir)/linux-arm-low.c $(srcdir)/linux-cris-low.c \
++	$(srcdir)/linux-avr32-low.c \
+ 	$(srcdir)/linux-crisv32-low.c $(srcdir)/linux-i386-low.c \
+ 	$(srcdir)/i387-fp.c \
+ 	$(srcdir)/linux-ia64-low.c $(srcdir)/linux-low.c \
+@@ -217,7 +218,7 @@ clean:
+ 	rm -f *.o ${ADD_FILES} *~
+ 	rm -f version.c
+ 	rm -f gdbserver$(EXEEXT) gdbreplay$(EXEEXT) core make.log
+-	rm -f reg-arm.c reg-i386.c reg-ia64.c reg-m32r.c reg-m68k.c
++	rm -f reg-arm.c reg-avr32.c reg-i386.c reg-ia64.c reg-m32r.c reg-m68k.c
+ 	rm -f reg-ppc.c reg-sh.c reg-spu.c reg-x86-64.c reg-i386-linux.c
+ 	rm -f reg-cris.c reg-crisv32.c reg-x86-64-linux.c reg-xtensa.c
+ 	rm -f arm-with-iwmmxt.c mips-linux.c mips64-linux.c
+@@ -303,6 +304,7 @@ linux-low.o: linux-low.c $(linux_low_h) 
+ 
+ linux-arm-low.o: linux-arm-low.c $(linux_low_h) $(server_h) \
+ 	$(gdb_proc_service_h)
++linux-avr32-low.o: linux-avr32-low.c $(linux_low_h) $(server_h)
+ linux-cris-low.o: linux-cris-low.c $(linux_low_h) $(server_h)
+ linux-crisv32-low.o: linux-crisv32-low.c $(linux_low_h) $(server_h)
+ linux-i386-low.o: linux-i386-low.c $(linux_low_h) $(server_h) \
+@@ -331,6 +333,9 @@ spu-low.o: spu-low.c $(server_h)
+ reg-arm.o : reg-arm.c $(regdef_h)
+ reg-arm.c : $(srcdir)/../regformats/reg-arm.dat $(regdat_sh)
+ 	$(SHELL) $(regdat_sh) $(srcdir)/../regformats/reg-arm.dat reg-arm.c
++reg-avr32.o : reg-avr32.c $(regdef_h)
++reg-avr32.c : $(srcdir)/../regformats/reg-avr32.dat $(regdat_sh)
++	$(SHELL) $(regdat_sh) $(srcdir)/../regformats/reg-avr32.dat reg-avr32.c
+ arm-with-iwmmxt.o : arm-with-iwmmxt.c $(regdef_h)
+ arm-with-iwmmxt.c : $(srcdir)/../regformats/arm-with-iwmmxt.dat $(regdat_sh)
+ 	$(SHELL) $(regdat_sh) $(srcdir)/../regformats/arm-with-iwmmxt.dat arm-with-iwmmxt.c
+diff -Narup gdb-6.7.1/gdb/gdbserver/configure.srv trunk/gdb/gdbserver/configure.srv
+--- gdb/gdbserver/configure.srv	2007-07-12 13:59:00.000000000 -0600
++++ gdb/gdbserver/configure.srv	2008-02-25 03:48:06.000000000 -0700
+@@ -39,6 +39,11 @@ case "${target}" in
+ 			srv_mingw=yes
+ 			srv_mingwce=yes
+ 			;;
++  avr32*-*-linux*)	srv_regobj=reg-avr32.o
++			srv_tgtobj="linux-low.o linux-avr32-low.o"
++			srv_linux_usrregs=yes
++			srv_linux_thread_db=yes
++			;;
+   crisv32-*-linux*)	srv_regobj=reg-crisv32.o
+ 			srv_tgtobj="linux-low.o linux-crisv32-low.o"
+ 			srv_linux_regsets=yes
+diff -Narup gdb-6.7.1/gdb/gdbserver/linux-avr32-low.c trunk/gdb/gdbserver/linux-avr32-low.c
+--- gdb/gdbserver/linux-avr32-low.c	1969-12-31 17:00:00.000000000 -0700
++++ gdb/gdbserver/linux-avr32-low.c	2006-08-10 04:41:17.000000000 -0600
+@@ -0,0 +1,116 @@
++/* GNU/Linux/AVR32 specific low level interface, for the remote server for GDB.
++   Copyright 2004-2006 Atmel Corporation.
++
++   Written by Haavard Skinnemoen, Atmel Norway, <hskinnemoen@atmel.com>
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "server.h"
++#include "linux-low.h"
++
++#define avr32_num_regs 16
++
++static int avr32_regmap[] = {
++  64, 60, 56, 52, 48, 44, 40, 36,
++  32, 28, 24, 20, 16, 12, 8, 4,
++};
++
++static int avr32_cannot_store_register(int regno)
++{
++  return regno >= avr32_num_regs;
++}
++
++static int avr32_cannot_fetch_register(int regno)
++{
++  return regno > avr32_num_regs;
++}
++
++#ifdef HAVE_LINUX_REGSETS
++#include <sys/procfs.h>
++#include <sys/ptrace.h>
++
++static void
++avr32_fill_gregset(void *buf)
++{
++  int i;
++
++  for (i = 0; i < avr32_num_regs; i++)
++    collect_register(i, ((char *)buf) + avr32_regmap[i]);
++}
++
++static void
++avr32_store_gregset(const void *buf)
++{
++  int i;
++
++  for (i = 0; i < avr32_num_regs; i++)
++    supply_register(i, ((char *)buf) + avr32_regmap[i]);
++}
++
++struct regset_info target_regsets[] = {
++  { PTRACE_GETREGS, PTRACE_SETREGS, sizeof(elf_gregset_t),
++    GENERAL_REGS,
++    avr32_fill_gregset, avr32_store_gregset },
++  { 0, 0, -1, -1, NULL, NULL }
++};
++
++#endif /* HAVE_LINUX_REGSETS */
++
++static CORE_ADDR
++avr32_get_pc(void)
++{
++  unsigned long pc;
++  collect_register_by_name("pc", &pc);
++  return pc;
++}
++
++static void
++avr32_set_pc(CORE_ADDR pc)
++{
++  unsigned long newpc = pc;
++  supply_register_by_name("pc", &newpc);
++}
++
++static const unsigned short avr32_breakpoint = 0xd673;
++#define avr32_breakpoint_len 2
++
++static int
++avr32_breakpoint_at(CORE_ADDR where)
++{
++  unsigned short insn;
++
++  (*the_target->read_memory)(where, (char *)&insn, sizeof(insn));
++  if (insn == avr32_breakpoint)
++    return 1;
++
++  return 0;
++}
++
++struct linux_target_ops the_low_target = {
++  avr32_num_regs,
++  avr32_regmap,
++  avr32_cannot_fetch_register,
++  avr32_cannot_store_register,
++  avr32_get_pc,
++  avr32_set_pc,
++  (const char *)&avr32_breakpoint,
++  avr32_breakpoint_len,
++  NULL,
++  0,
++  avr32_breakpoint_at,
++};
+diff -Narup gdb-6.7.1/gdb/regformats/reg-avr32.dat trunk/gdb/regformats/reg-avr32.dat
+--- gdb/regformats/reg-avr32.dat	1969-12-31 17:00:00.000000000 -0700
++++ gdb/regformats/reg-avr32.dat	2006-08-10 04:41:11.000000000 -0600
+@@ -0,0 +1,18 @@
++name:avr32
++expedite:sp,pc
++32:r0
++32:r1
++32:r2
++32:r3
++32:r4
++32:r5
++32:r6
++32:r7
++32:r8
++32:r9
++32:r10
++32:r11
++32:r12
++32:sp
++32:lr
++32:pc
+--- gdb/remote.c.orig	2008-02-25 02:59:06.000000000 -0700
++++ gdb/remote.c	2009-04-09 16:51:39.695195700 -0600
+@@ -25,6 +25,7 @@
+ #include "gdb_string.h"
+ #include <ctype.h>
+ #include <fcntl.h>
++#include <string.h>
+ #include "inferior.h"
+ #include "bfd.h"
+ #include "symfile.h"
+@@ -935,6 +936,7 @@ enum {
+   PACKET_QPassSignals,
+   PACKET_vAttach,
+   PACKET_vRun,
++  PACKET_qPart_sysreg,
+   PACKET_MAX
+ };
+ 
+@@ -5455,6 +5457,64 @@ extended_remote_run (char *args)
+     }
+ }
+ 
++/* Send the argument vector to the inferior program.  */
++static int
++remote_send_args (const char *exec_file, const char *args)
++{
++  char *outbuf;
++  char *hexstring;
++  int len;
++  int argnum = 0;
++  char *argbuf = xstrprintf ("%s", args);
++  char *curarg = argbuf;
++  struct remote_state *rs = get_remote_state ();
++
++  /* Add the executable file name to the argument vector. */
++  if ( !exec_file ){
++	  exec_file = "<unknown>";
++  }
++  len = strlen (exec_file);
++  hexstring = alloca (len*2+1);
++  bin2hex (exec_file, hexstring, 0);
++  outbuf = xstrprintf ("A%x,%x,%s",len*2, argnum++, hexstring);
++
++  while ( strlen (curarg) > 0 )
++    {
++      int arglen;
++      char *argend;
++      char *prev_outbuf = outbuf;
++
++      if ( (argend = strchr (curarg, ' ')) != NULL )
++    	  *argend = '\0';
++
++      len = strlen (curarg);
++      hexstring = alloca (len*2+1);
++      bin2hex (curarg, hexstring, 0);
++      outbuf = xstrprintf ("%s,%x,%x,%s", prev_outbuf, len*2, argnum++, hexstring);
++      make_cleanup (xfree, prev_outbuf);
++
++      /* Check if this is the last arg. */
++      if ( argend == NULL )
++    	  break;
++
++      curarg += len + 1;
++      /* Skip whitespace. */
++      while ( *curarg == ' ' )
++    	  curarg++;
++    };
++
++  putpkt (outbuf);
++  getpkt (&rs->buf, &rs->buf_size, 0);
++
++  make_cleanup (xfree, outbuf);
++  make_cleanup (xfree, argbuf);
++
++  if ( rs->buf[0] == 'E' )
++    return 0;
++
++  return 1;
++}
++
+ /* In the extended protocol we want to be able to do things like
+    "run" and have them basically work as expected.  So we need
+    a special create_inferior function.  We support changing the
+@@ -5499,6 +5559,8 @@ extended_remote_create_inferior_1 (char 
+   /* Clean up from the last time we were running.  */
+   init_thread_list ();
+   init_wait_for_inferior ();
++
++  remote_send_args (exec_file, args);
+ }
+ 
+ static void
+@@ -6089,6 +6151,114 @@ remote_xfer_partial (struct target_ops *
+ 	return -1;
+     }
+ 
++
++
++  /* This is messed up, but so is the existing code.  We happen to be
++     able to support writes, so we don't want arbitrary limitations
++     preventing us from doing so.  There's also a warning below that
++     we shouldn't do something, so I guess we probably shouldn't (but
++     if we don't, the rest of the function is worthless to us.)
++     Better duplicate most of the code instead.  */
++  if (object == TARGET_OBJECT_SYSREG)
++    {
++      struct packet_config *cfg = NULL;
++      const char *object_name = NULL;
++
++      switch (object)
++	{
++	case TARGET_OBJECT_SYSREG:
++	  cfg = &remote_protocol_packets[PACKET_qPart_sysreg];
++	  if (cfg->support != PACKET_DISABLE)
++	    object_name = "sysreg";
++	  break;
++	}
++
++      if (object_name == NULL)
++	return -1;
++
++      /* Note: a zero OFFSET and LEN can be used to query the minimum
++	 buffer size.  */
++      if (offset == 0 && len == 0)
++	return (get_remote_packet_size ());
++
++      /* except for querying the minimum buffer size, target must be open */
++      if (!remote_desc)
++	error ("remote query is only available after target open");
++
++      gdb_assert (annex != NULL);
++      for (i = 0; annex[i]; i++)
++	/* Bad caller may have sent forbidden characters.  */
++	gdb_assert (isprint (annex[i]) && annex[i] != '$' && annex[i] != '#');
++
++      if (writebuf)
++	{
++	  LONGEST body_len, header_len, count;
++	  long max_len;
++	  char* buf = rs->buf;
++	  /* TODO: Use xsnprintf() like other parts of this code does? */
++	  max_len = get_remote_packet_size ();
++	  header_len = snprintf(rs->buf, max_len - 5,
++				"qPart:%s:write:%s:%s:",
++				object_name, annex ? annex : "",
++				phex_nz (offset, sizeof offset));
++	  body_len = max_len - header_len - 5;
++	  if (body_len < 0)
++	    return -1;
++
++	  /* Each byte takes two hex characters + null character at the end */
++	  count = len;
++	  if (count > (body_len - 1) / 2)
++	    count = (body_len - 1) / 2;
++
++	  bin2hex(writebuf, rs->buf + header_len, count);
++	  i = putpkt(rs->buf);
++	  if (i < 0)
++	    return i;
++
++	  rs->buf[0] = '\0';
++	  getpkt(&rs->buf, &rs->buf_size, 0);
++	  if (packet_ok(buf, cfg) != PACKET_OK)
++	    return -1;
++
++	  p2 = &buf[0];
++	  body_len = 0;
++	  while (*p2)
++	    body_len = (body_len << 4) + fromhex (*p2++);
++
++	  i = body_len;
++	}
++      else
++	{
++	  LONGEST n = min((get_remote_packet_size () - 5) / 2, len);
++	  LONGEST req_len;
++	  char* buf = rs->buf;
++
++	  req_len = snprintf(rs->buf, get_remote_packet_size () - 5,
++			     "qPart:%s:read:%s:%s,%s",
++			     object_name, annex,
++			     phex_nz (offset, sizeof(offset)),
++			     phex_nz (n, sizeof(n)));
++	  if (req_len > rs->buf_size - 5)
++	    return -1;
++
++	  i = putpkt(rs->buf);
++	  if (i < 0)
++	    return i;
++
++	  rs->buf[0] = '\0';
++	  len = get_remote_packet_size ();
++	  getpkt(&rs->buf, &rs->buf_size, 0);
++	  if (packet_ok(buf, cfg) != PACKET_OK)
++	    return -1;
++	  if (rs->buf[0] == 'O' && rs->buf[1] == 'K' && rs->buf[2] == '\0')
++	    return 0;
++
++	  i = hex2bin(rs->buf, readbuf, len);
++	}
++
++      return i;
++    }
++
+   /* Handle SPU memory using qxfer packets. */
+   if (object == TARGET_OBJECT_SPU)
+     {
+@@ -7674,6 +7844,10 @@ Show the maximum size of the address (in
+   add_packet_config_cmd (&remote_protocol_packets[PACKET_vRun],
+ 			 "vRun", "run", 0);
+ 
++  add_packet_config_cmd (&remote_protocol_packets[PACKET_qPart_sysreg],
++			 "qPart_sysreg", "sysreg",
++			 0);
++
+   /* Keep the old ``set remote Z-packet ...'' working.  Each individual
+      Z sub-packet has its own set and show commands, but users may
+      have sets to this variable in their .gdbinit files (or in their
+diff -Narup gdb-6.7.1/gdb/target.h trunk/gdb/target.h
+--- gdb/target.h	2007-08-23 12:08:46.000000000 -0600
++++ gdb/target.h	2008-02-25 03:48:06.000000000 -0700
+@@ -212,7 +212,10 @@ enum target_object
+      See "target-descriptions.c".  ANNEX should never be empty.  */
+   TARGET_OBJECT_AVAILABLE_FEATURES,
+   /* Currently loaded libraries, in XML format.  */
+-  TARGET_OBJECT_LIBRARIES
++  TARGET_OBJECT_LIBRARIES,
++  /* System Register.  See "avr32-tdep.c and "remote.c". */
++  TARGET_OBJECT_SYSREG
++
+   /* Possible future objects: TARGET_OBJECT_FILE, TARGET_OBJECT_PROC, ... */
+ };
+ 
+diff -Narup gdb-6.7.1/install-sh trunk/install-sh
+--- install-sh	2005-07-13 19:24:56.000000000 -0600
++++ install-sh	2009-02-23 22:55:52.000000000 -0700
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ # install - install a program, script, or datafile
+ 
+-scriptversion=2005-05-14.22
++scriptversion=2006-12-25.00
+ 
+ # This originates from X11R5 (mit/util/scripts/install.sh), which was
+ # later released in X11R6 (xc/config/util/install.sh) with the
+@@ -39,38 +39,68 @@ scriptversion=2005-05-14.22
+ # when there is no Makefile.
+ #
+ # This script is compatible with the BSD install script, but was written
+-# from scratch.  It can only install one file at a time, a restriction
+-# shared with many OS's install programs.
++# from scratch.
++
++nl='
++'
++IFS=" ""	$nl"
+ 
+ # set DOITPROG to echo to test this script
+ 
+ # Don't use :- since 4.3BSD and earlier shells don't like it.
+-doit="${DOITPROG-}"
++doit=${DOITPROG-}
++if test -z "$doit"; then
++  doit_exec=exec
++else
++  doit_exec=$doit
++fi
+ 
+-# put in absolute paths if you don't have them in your path; or use env. vars.
++# Put in absolute file names if you don't have them in your path;
++# or use environment vars.
+ 
+-mvprog="${MVPROG-mv}"
+-cpprog="${CPPROG-cp}"
+-chmodprog="${CHMODPROG-chmod}"
+-chownprog="${CHOWNPROG-chown}"
+-chgrpprog="${CHGRPPROG-chgrp}"
+-stripprog="${STRIPPROG-strip}"
+-rmprog="${RMPROG-rm}"
+-mkdirprog="${MKDIRPROG-mkdir}"
++chgrpprog=${CHGRPPROG-chgrp}
++chmodprog=${CHMODPROG-chmod}
++chownprog=${CHOWNPROG-chown}
++cmpprog=${CMPPROG-cmp}
++cpprog=${CPPROG-cp}
++mkdirprog=${MKDIRPROG-mkdir}
++mvprog=${MVPROG-mv}
++rmprog=${RMPROG-rm}
++stripprog=${STRIPPROG-strip}
++
++posix_glob='?'
++initialize_posix_glob='
++  test "$posix_glob" != "?" || {
++    if (set -f) 2>/dev/null; then
++      posix_glob=
++    else
++      posix_glob=:
++    fi
++  }
++'
++
++posix_mkdir=
++
++# Desired mode of installed file.
++mode=0755
+ 
+-chmodcmd="$chmodprog 0755"
+-chowncmd=
+ chgrpcmd=
+-stripcmd=
++chmodcmd=$chmodprog
++chowncmd=
++mvcmd=$mvprog
+ rmcmd="$rmprog -f"
+-mvcmd="$mvprog"
++stripcmd=
++
+ src=
+ dst=
+ dir_arg=
+-dstarg=
++dst_arg=
++
++copy_on_change=false
+ no_target_directory=
+ 
+-usage="Usage: $0 [OPTION]... [-T] SRCFILE DSTFILE
++usage="\
++Usage: $0 [OPTION]... [-T] SRCFILE DSTFILE
+    or: $0 [OPTION]... SRCFILES... DIRECTORY
+    or: $0 [OPTION]... -t DIRECTORY SRCFILES...
+    or: $0 [OPTION]... -d DIRECTORIES...
+@@ -80,81 +110,86 @@ In the 2nd and 3rd, copy all SRCFILES to
+ In the 4th, create DIRECTORIES.
+ 
+ Options:
+--c         (ignored)
+--d         create directories instead of installing files.
+--g GROUP   $chgrpprog installed files to GROUP.
+--m MODE    $chmodprog installed files to MODE.
+--o USER    $chownprog installed files to USER.
+--s         $stripprog installed files.
+--t DIRECTORY  install into DIRECTORY.
+--T         report an error if DSTFILE is a directory.
+---help     display this help and exit.
+---version  display version info and exit.
++     --help     display this help and exit.
++     --version  display version info and exit.
++
++  -c            (ignored)
++  -C            install only if different (preserve the last data modification time)
++  -d            create directories instead of installing files.
++  -g GROUP      $chgrpprog installed files to GROUP.
++  -m MODE       $chmodprog installed files to MODE.
++  -o USER       $chownprog installed files to USER.
++  -s            $stripprog installed files.
++  -t DIRECTORY  install into DIRECTORY.
++  -T            report an error if DSTFILE is a directory.
+ 
+ Environment variables override the default commands:
+-  CHGRPPROG CHMODPROG CHOWNPROG CPPROG MKDIRPROG MVPROG RMPROG STRIPPROG
++  CHGRPPROG CHMODPROG CHOWNPROG CMPPROG CPPROG MKDIRPROG MVPROG
++  RMPROG STRIPPROG
+ "
+ 
+-while test -n "$1"; do
++while test $# -ne 0; do
+   case $1 in
+-    -c) shift
+-        continue;;
++    -c) ;;
+ 
+-    -d) dir_arg=true
+-        shift
+-        continue;;
++    -C) copy_on_change=true;;
++
++    -d) dir_arg=true;;
+ 
+     -g) chgrpcmd="$chgrpprog $2"
+-        shift
+-        shift
+-        continue;;
++	shift;;
+ 
+     --help) echo "$usage"; exit $?;;
+ 
+-    -m) chmodcmd="$chmodprog $2"
+-        shift
+-        shift
+-        continue;;
++    -m) mode=$2
++	case $mode in
++	  *' '* | *'	'* | *'
++'*	  | *'*'* | *'?'* | *'['*)
++	    echo "$0: invalid mode: $mode" >&2
++	    exit 1;;
++	esac
++	shift;;
+ 
+     -o) chowncmd="$chownprog $2"
+-        shift
+-        shift
+-        continue;;
+-
+-    -s) stripcmd=$stripprog
+-        shift
+-        continue;;
+-
+-    -t) dstarg=$2
+-	shift
+-	shift
+-	continue;;
+-
+-    -T) no_target_directory=true
+-	shift
+-	continue;;
++	shift;;
++
++    -s) stripcmd=$stripprog;;
++
++    -t) dst_arg=$2
++	shift;;
++
++    -T) no_target_directory=true;;
+ 
+     --version) echo "$0 $scriptversion"; exit $?;;
+ 
+-    *)  # When -d is used, all remaining arguments are directories to create.
+-	# When -t is used, the destination is already specified.
+-	test -n "$dir_arg$dstarg" && break
+-        # Otherwise, the last argument is the destination.  Remove it from $@.
+-	for arg
+-	do
+-          if test -n "$dstarg"; then
+-	    # $@ is not empty: it contains at least $arg.
+-	    set fnord "$@" "$dstarg"
+-	    shift # fnord
+-	  fi
+-	  shift # arg
+-	  dstarg=$arg
+-	done
++    --)	shift
+ 	break;;
++
++    -*)	echo "$0: invalid option: $1" >&2
++	exit 1;;
++
++    *)  break;;
+   esac
++  shift
+ done
+ 
+-if test -z "$1"; then
++if test $# -ne 0 && test -z "$dir_arg$dst_arg"; then
++  # When -d is used, all remaining arguments are directories to create.
++  # When -t is used, the destination is already specified.
++  # Otherwise, the last argument is the destination.  Remove it from $@.
++  for arg
++  do
++    if test -n "$dst_arg"; then
++      # $@ is not empty: it contains at least $arg.
++      set fnord "$@" "$dst_arg"
++      shift # fnord
++    fi
++    shift # arg
++    dst_arg=$arg
++  done
++fi
++
++if test $# -eq 0; then
+   if test -z "$dir_arg"; then
+     echo "$0: no input file specified." >&2
+     exit 1
+@@ -164,24 +199,47 @@ if test -z "$1"; then
+   exit 0
+ fi
+ 
++if test -z "$dir_arg"; then
++  trap '(exit $?); exit' 1 2 13 15
++
++  # Set umask so as not to create temps with too-generous modes.
++  # However, 'strip' requires both read and write access to temps.
++  case $mode in
++    # Optimize common cases.
++    *644) cp_umask=133;;
++    *755) cp_umask=22;;
++
++    *[0-7])
++      if test -z "$stripcmd"; then
++	u_plus_rw=
++      else
++	u_plus_rw='% 200'
++      fi
++      cp_umask=`expr '(' 777 - $mode % 1000 ')' $u_plus_rw`;;
++    *)
++      if test -z "$stripcmd"; then
++	u_plus_rw=
++      else
++	u_plus_rw=,u+rw
++      fi
++      cp_umask=$mode$u_plus_rw;;
++  esac
++fi
++
+ for src
+ do
+   # Protect names starting with `-'.
+   case $src in
+-    -*) src=./$src ;;
++    -*) src=./$src;;
+   esac
+ 
+   if test -n "$dir_arg"; then
+     dst=$src
+-    src=
+-
+-    if test -d "$dst"; then
+-      mkdircmd=:
+-      chmodcmd=
+-    else
+-      mkdircmd=$mkdirprog
+-    fi
++    dstdir=$dst
++    test -d "$dstdir"
++    dstdir_status=$?
+   else
++
+     # Waiting for this to be detected by the "$cpprog $src $dsttmp" command
+     # might cause directories to be created, which would be especially bad
+     # if $src (and thus $dsttmp) contains '*'.
+@@ -190,71 +248,199 @@ do
+       exit 1
+     fi
+ 
+-    if test -z "$dstarg"; then
++    if test -z "$dst_arg"; then
+       echo "$0: no destination specified." >&2
+       exit 1
+     fi
+ 
+-    dst=$dstarg
++    dst=$dst_arg
+     # Protect names starting with `-'.
+     case $dst in
+-      -*) dst=./$dst ;;
++      -*) dst=./$dst;;
+     esac
+ 
+     # If destination is a directory, append the input filename; won't work
+     # if double slashes aren't ignored.
+     if test -d "$dst"; then
+       if test -n "$no_target_directory"; then
+-	echo "$0: $dstarg: Is a directory" >&2
++	echo "$0: $dst_arg: Is a directory" >&2
+ 	exit 1
+       fi
+-      dst=$dst/`basename "$src"`
++      dstdir=$dst
++      dst=$dstdir/`basename "$src"`
++      dstdir_status=0
++    else
++      # Prefer dirname, but fall back on a substitute if dirname fails.
++      dstdir=`
++	(dirname "$dst") 2>/dev/null ||
++	expr X"$dst" : 'X\(.*[^/]\)//*[^/][^/]*/*$' \| \
++	     X"$dst" : 'X\(//\)[^/]' \| \
++	     X"$dst" : 'X\(//\)$' \| \
++	     X"$dst" : 'X\(/\)' \| . 2>/dev/null ||
++	echo X"$dst" |
++	    sed '/^X\(.*[^/]\)\/\/*[^/][^/]*\/*$/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\/\)[^/].*/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\/\)$/{
++		   s//\1/
++		   q
++		 }
++		 /^X\(\/\).*/{
++		   s//\1/
++		   q
++		 }
++		 s/.*/./; q'
++      `
++
++      test -d "$dstdir"
++      dstdir_status=$?
+     fi
+   fi
+ 
+-  # This sed command emulates the dirname command.
+-  dstdir=`echo "$dst" | sed -e 's,/*$,,;s,[^/]*$,,;s,/*$,,;s,^$,.,'`
+-
+-  # Make sure that the destination directory exists.
++  obsolete_mkdir_used=false
+ 
+-  # Skip lots of stat calls in the usual case.
+-  if test ! -d "$dstdir"; then
+-    defaultIFS='
+-	 '
+-    IFS="${IFS-$defaultIFS}"
+-
+-    oIFS=$IFS
+-    # Some sh's can't handle IFS=/ for some reason.
+-    IFS='%'
+-    set x `echo "$dstdir" | sed -e 's@/@%@g' -e 's@^%@/@'`
+-    shift
+-    IFS=$oIFS
++  if test $dstdir_status != 0; then
++    case $posix_mkdir in
++      '')
++	# Create intermediate dirs using mode 755 as modified by the umask.
++	# This is like FreeBSD 'install' as of 1997-10-28.
++	umask=`umask`
++	case $stripcmd.$umask in
++	  # Optimize common cases.
++	  *[2367][2367]) mkdir_umask=$umask;;
++	  .*0[02][02] | .[02][02] | .[02]) mkdir_umask=22;;
++
++	  *[0-7])
++	    mkdir_umask=`expr $umask + 22 \
++	      - $umask % 100 % 40 + $umask % 20 \
++	      - $umask % 10 % 4 + $umask % 2
++	    `;;
++	  *) mkdir_umask=$umask,go-w;;
++	esac
++
++	# With -d, create the new directory with the user-specified mode.
++	# Otherwise, rely on $mkdir_umask.
++	if test -n "$dir_arg"; then
++	  mkdir_mode=-m$mode
++	else
++	  mkdir_mode=
++	fi
++
++	posix_mkdir=false
++	case $umask in
++	  *[123567][0-7][0-7])
++	    # POSIX mkdir -p sets u+wx bits regardless of umask, which
++	    # is incompatible with FreeBSD 'install' when (umask & 300) != 0.
++	    ;;
++	  *)
++	    tmpdir=${TMPDIR-/tmp}/ins$RANDOM-$$
++	    trap 'ret=$?; rmdir "$tmpdir/d" "$tmpdir" 2>/dev/null; exit $ret' 0
++
++	    if (umask $mkdir_umask &&
++		exec $mkdirprog $mkdir_mode -p -- "$tmpdir/d") >/dev/null 2>&1
++	    then
++	      if test -z "$dir_arg" || {
++		   # Check for POSIX incompatibilities with -m.
++		   # HP-UX 11.23 and IRIX 6.5 mkdir -m -p sets group- or
++		   # other-writeable bit of parent directory when it shouldn't.
++		   # FreeBSD 6.1 mkdir -m -p sets mode of existing directory.
++		   ls_ld_tmpdir=`ls -ld "$tmpdir"`
++		   case $ls_ld_tmpdir in
++		     d????-?r-*) different_mode=700;;
++		     d????-?--*) different_mode=755;;
++		     *) false;;
++		   esac &&
++		   $mkdirprog -m$different_mode -p -- "$tmpdir" && {
++		     ls_ld_tmpdir_1=`ls -ld "$tmpdir"`
++		     test "$ls_ld_tmpdir" = "$ls_ld_tmpdir_1"
++		   }
++		 }
++	      then posix_mkdir=:
++	      fi
++	      rmdir "$tmpdir/d" "$tmpdir"
++	    else
++	      # Remove any dirs left behind by ancient mkdir implementations.
++	      rmdir ./$mkdir_mode ./-p ./-- 2>/dev/null
++	    fi
++	    trap '' 0;;
++	esac;;
++    esac
+ 
+-    pathcomp=
++    if
++      $posix_mkdir && (
++	umask $mkdir_umask &&
++	$doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir"
++      )
++    then :
++    else
+ 
+-    while test $# -ne 0 ; do
+-      pathcomp=$pathcomp$1
++      # The umask is ridiculous, or mkdir does not conform to POSIX,
++      # or it failed possibly due to a race condition.  Create the
++      # directory the slow way, step by step, checking for races as we go.
++
++      case $dstdir in
++	/*) prefix='/';;
++	-*) prefix='./';;
++	*)  prefix='';;
++      esac
++
++      eval "$initialize_posix_glob"
++
++      oIFS=$IFS
++      IFS=/
++      $posix_glob set -f
++      set fnord $dstdir
+       shift
+-      if test ! -d "$pathcomp"; then
+-        $mkdirprog "$pathcomp"
+-	# mkdir can fail with a `File exist' error in case several
+-	# install-sh are creating the directory concurrently.  This
+-	# is OK.
+-	test -d "$pathcomp" || exit
++      $posix_glob set +f
++      IFS=$oIFS
++
++      prefixes=
++
++      for d
++      do
++	test -z "$d" && continue
++
++	prefix=$prefix$d
++	if test -d "$prefix"; then
++	  prefixes=
++	else
++	  if $posix_mkdir; then
++	    (umask=$mkdir_umask &&
++	     $doit_exec $mkdirprog $mkdir_mode -p -- "$dstdir") && break
++	    # Don't fail if two instances are running concurrently.
++	    test -d "$prefix" || exit 1
++	  else
++	    case $prefix in
++	      *\'*) qprefix=`echo "$prefix" | sed "s/'/'\\\\\\\\''/g"`;;
++	      *) qprefix=$prefix;;
++	    esac
++	    prefixes="$prefixes '$qprefix'"
++	  fi
++	fi
++	prefix=$prefix/
++      done
++
++      if test -n "$prefixes"; then
++	# Don't fail if two instances are running concurrently.
++	(umask $mkdir_umask &&
++	 eval "\$doit_exec \$mkdirprog $prefixes") ||
++	  test -d "$dstdir" || exit 1
++	obsolete_mkdir_used=true
+       fi
+-      pathcomp=$pathcomp/
+-    done
++    fi
+   fi
+ 
+   if test -n "$dir_arg"; then
+-    $doit $mkdircmd "$dst" \
+-      && { test -z "$chowncmd" || $doit $chowncmd "$dst"; } \
+-      && { test -z "$chgrpcmd" || $doit $chgrpcmd "$dst"; } \
+-      && { test -z "$stripcmd" || $doit $stripcmd "$dst"; } \
+-      && { test -z "$chmodcmd" || $doit $chmodcmd "$dst"; }
+-
++    { test -z "$chowncmd" || $doit $chowncmd "$dst"; } &&
++    { test -z "$chgrpcmd" || $doit $chgrpcmd "$dst"; } &&
++    { test "$obsolete_mkdir_used$chowncmd$chgrpcmd" = false ||
++      test -z "$chmodcmd" || $doit $chmodcmd $mode "$dst"; } || exit 1
+   else
+-    dstfile=`basename "$dst"`
+ 
+     # Make a couple of temp file names in the proper directory.
+     dsttmp=$dstdir/_inst.$$_
+@@ -262,10 +448,9 @@ do
+ 
+     # Trap to clean up those temp files at exit.
+     trap 'ret=$?; rm -f "$dsttmp" "$rmtmp" && exit $ret' 0
+-    trap '(exit $?); exit' 1 2 13 15
+ 
+     # Copy the file name to the temp name.
+-    $doit $cpprog "$src" "$dsttmp" &&
++    (umask $cp_umask && $doit_exec $cpprog "$src" "$dsttmp") &&
+ 
+     # and set any options; do chmod last to preserve setuid bits.
+     #
+@@ -273,47 +458,58 @@ do
+     # ignore errors from any of these, just make sure not to ignore
+     # errors from the above "$doit $cpprog $src $dsttmp" command.
+     #
+-    { test -z "$chowncmd" || $doit $chowncmd "$dsttmp"; } \
+-      && { test -z "$chgrpcmd" || $doit $chgrpcmd "$dsttmp"; } \
+-      && { test -z "$stripcmd" || $doit $stripcmd "$dsttmp"; } \
+-      && { test -z "$chmodcmd" || $doit $chmodcmd "$dsttmp"; } &&
+-
+-    # Now rename the file to the real destination.
+-    { $doit $mvcmd -f "$dsttmp" "$dstdir/$dstfile" 2>/dev/null \
+-      || {
+-	   # The rename failed, perhaps because mv can't rename something else
+-	   # to itself, or perhaps because mv is so ancient that it does not
+-	   # support -f.
+-
+-	   # Now remove or move aside any old file at destination location.
+-	   # We try this two ways since rm can't unlink itself on some
+-	   # systems and the destination file might be busy for other
+-	   # reasons.  In this case, the final cleanup might fail but the new
+-	   # file should still install successfully.
+-	   {
+-	     if test -f "$dstdir/$dstfile"; then
+-	       $doit $rmcmd -f "$dstdir/$dstfile" 2>/dev/null \
+-	       || $doit $mvcmd -f "$dstdir/$dstfile" "$rmtmp" 2>/dev/null \
+-	       || {
+-		 echo "$0: cannot unlink or rename $dstdir/$dstfile" >&2
+-		 (exit 1); exit 1
+-	       }
+-	     else
+-	       :
+-	     fi
+-	   } &&
+-
+-	   # Now rename the file to the real destination.
+-	   $doit $mvcmd "$dsttmp" "$dstdir/$dstfile"
+-	 }
+-    }
+-  fi || { (exit 1); exit 1; }
+-done
++    { test -z "$chowncmd" || $doit $chowncmd "$dsttmp"; } &&
++    { test -z "$chgrpcmd" || $doit $chgrpcmd "$dsttmp"; } &&
++    { test -z "$stripcmd" || $doit $stripcmd "$dsttmp"; } &&
++    { test -z "$chmodcmd" || $doit $chmodcmd $mode "$dsttmp"; } &&
++
++    # If -C, don't bother to copy if it wouldn't change the file.
++    if $copy_on_change &&
++       old=`LC_ALL=C ls -dlL "$dst"	2>/dev/null` &&
++       new=`LC_ALL=C ls -dlL "$dsttmp"	2>/dev/null` &&
++
++       eval "$initialize_posix_glob" &&
++       $posix_glob set -f &&
++       set X $old && old=:$2:$4:$5:$6 &&
++       set X $new && new=:$2:$4:$5:$6 &&
++       $posix_glob set +f &&
++
++       test "$old" = "$new" &&
++       $cmpprog "$dst" "$dsttmp" >/dev/null 2>&1
++    then
++      rm -f "$dsttmp"
++    else
++      # Rename the file to the real destination.
++      $doit $mvcmd -f "$dsttmp" "$dst" 2>/dev/null ||
+ 
+-# The final little trick to "correctly" pass the exit status to the exit trap.
+-{
+-  (exit 0); exit 0
+-}
++      # The rename failed, perhaps because mv can't rename something else
++      # to itself, or perhaps because mv is so ancient that it does not
++      # support -f.
++      {
++	# Now remove or move aside any old file at destination location.
++	# We try this two ways since rm can't unlink itself on some
++	# systems and the destination file might be busy for other
++	# reasons.  In this case, the final cleanup might fail but the new
++	# file should still install successfully.
++	{
++	  test ! -f "$dst" ||
++	  $doit $rmcmd -f "$dst" 2>/dev/null ||
++	  { $doit $mvcmd -f "$dst" "$rmtmp" 2>/dev/null &&
++	    { $doit $rmcmd -f "$rmtmp" 2>/dev/null; :; }
++	  } ||
++	  { echo "$0: cannot unlink or rename $dst" >&2
++	    (exit 1); exit 1
++	  }
++	} &&
++
++	# Now rename the file to the real destination.
++	$doit $mvcmd "$dsttmp" "$dst"
++      }
++    fi || exit 1
++
++    trap '' 0
++  fi
++done
+ 
+ # Local variables:
+ # eval: (add-hook 'write-file-hooks 'time-stamp)

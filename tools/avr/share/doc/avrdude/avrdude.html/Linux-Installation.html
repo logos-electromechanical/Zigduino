@@ -1,0 +1,45 @@
+<html lang="en">
+<head>
+<title>Linux Installation - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Unix-Installation.html#Unix-Installation" title="Unix Installation">
+<link rel="prev" href="FreeBSD-Installation.html#FreeBSD-Installation" title="FreeBSD Installation">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Linux-Installation"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="FreeBSD-Installation.html#FreeBSD-Installation">FreeBSD Installation</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Unix-Installation.html#Unix-Installation">Unix Installation</a>
+<hr><br>
+</div>
+
+<h5 class="subsubsection">A.1.1.2 Linux Installation</h5>
+
+<p class="noindent">On rpm based linux systems (such as RedHat, SUSE, Mandrake, etc), you
+can build and install the rpm binaries directly from the tarball:
+
+<pre class="example">     $ su - root
+     # rpmbuild -tb avrdude-5.8cvs.tar.gz
+     # rpm -Uvh /usr/src/redhat/RPMS/i386/avrdude-5.8cvs-1.i386.rpm
+</pre>
+   <p>Note that the path to the resulting rpm package, differs from system
+to system. The above example is specific to RedHat.
+
+<!-- Node -->
+</body></html>
+

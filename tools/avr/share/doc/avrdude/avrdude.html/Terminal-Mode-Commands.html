@@ -1,0 +1,114 @@
+<html lang="en">
+<head>
+<title>Terminal Mode Commands - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation" title="Terminal Mode Operation">
+<link rel="prev" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation" title="Terminal Mode Operation">
+<link rel="next" href="Terminal-Mode-Examples.html#Terminal-Mode-Examples" title="Terminal Mode Examples">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Terminal-Mode-Commands"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Terminal-Mode-Examples.html#Terminal-Mode-Examples">Terminal Mode Examples</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation">Terminal Mode Operation</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Terminal-Mode-Operation.html#Terminal-Mode-Operation">Terminal Mode Operation</a>
+<hr><br>
+</div>
+
+<h3 class="section">3.1 Terminal Mode Commands</h3>
+
+<p class="noindent">The following commands are implemented:
+
+     <dl>
+<dt><code>dump </code><var>memtype</var> <var>addr</var> <var>nbytes</var><dd>Read <var>nbytes</var> from the specified memory area, and display them in
+the usual hexadecimal and ASCII form.
+
+     <br><dt><code>dump</code><dd>Continue dumping the memory contents for another <var>nbytes</var> where the
+previous dump command left off.
+
+     <br><dt><code>write </code><var>memtype</var> <var>addr</var> <var>byte1</var><code> ... </code><var>byteN</var><dd>Manually program the respective memory cells, starting at address addr,
+using the values <var>byte1</var> through <var>byteN</var>.  This feature is not
+implemented for bank-addressed memories such as the flash memory of
+ATMega devices.
+
+     <br><dt><code>erase</code><dd>Perform a chip erase.
+
+     <br><dt><code>send </code><var>b1</var> <var>b2</var> <var>b3</var> <var>b4</var><dd>Send raw instruction codes to the AVR device.  If you need access to a
+feature of an AVR part that is not directly supported by AVRDUDE, this
+command allows you to use it, even though AVRDUDE does not implement the
+command.   When using direct SPI mode, up to 3 bytes
+can be omitted.
+
+     <br><dt><code>sig</code><dd>Display the device signature bytes.
+
+     <br><dt><code>spi</code><dd>Enter direct SPI mode.  The <em>pgmled</em> pin acts as slave select. 
+<em>Only supported on parallel bitbang programmers.</em>
+
+     <br><dt><code>part</code><dd>Display the current part settings and parameters.  Includes chip
+specific information including all memory types supported by the
+device, read/write timing, etc.
+
+     <br><dt><code>pgm</code><dd>Return to programming mode (from direct SPI mode).
+
+     <br><dt><code>?</code><dt><code>help</code><dd>Give a short on-line summary of the available commands.
+
+     <br><dt><code>quit</code><dd>Leave terminal mode and thus AVRDUDE.
+
+   </dl>
+
+<p class="noindent">In addition, the following commands are supported on the STK500
+and STK600 programmer:
+
+     <dl>
+<dt><code>vtarg </code><var>voltage</var><dd>Set the target's supply voltage to <var>voltage</var> Volts.
+
+     <br><dt><code>varef [</code><var>channel</var><code>] </code><var>voltage</var><dd>Set the adjustable voltage source to <var>voltage</var> Volts. 
+This voltage is normally used to drive the target's
+<em>Aref</em> input on the STK500 and STK600. 
+The STK600 offers two reference voltages, which can be
+selected by the optional parameter <var>channel</var> (either
+0 or 1).
+
+     <br><dt><code>fosc </code><var>freq</var><code>[M|k]</code><dd>Set the master oscillator to <var>freq</var> Hz. 
+An optional trailing letter <code>M</code>
+multiplies by 1E6, a trailing letter <code>k</code> by 1E3.
+
+     <br><dt><code>fosc off</code><dd>Turn the master oscillator off.
+
+     <br><dt><code>sck </code><var>period</var><dd><em>STK500 and STK600 only:</em>
+Set the SCK clock period to <var>period</var> microseconds.
+
+     <p><em>JTAG ICE only:</em>
+Set the JTAG ICE bit clock period to <var>period</var> microseconds. 
+Note that unlike STK500 settings, this setting will be reverted to
+its default value (approximately 1 microsecond) when the programming
+software signs off from the JTAG ICE. 
+This parameter can also be used on the JTAG ICE mkII to specify the
+ISP clock period when operating the ICE in ISP mode.
+
+     <br><dt><code>parms</code><dd><em>STK500 and STK600 only:</em>
+Display the current voltage and master oscillator parameters.
+
+     <p><em>JTAG ICE only:</em>
+Display the current target supply voltage and JTAG bit clock rate/period.
+
+   </dl>
+
+<!-- Node -->
+</body></html>
+

@@ -1,0 +1,85 @@
+<html lang="en">
+<head>
+<title>Starting and Stopping Trace Experiments - Debugging with GDB</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Debugging with GDB">
+<meta name="generator" content="makeinfo 4.8">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Set-Tracepoints.html#Set-Tracepoints" title="Set Tracepoints">
+<link rel="prev" href="Listing-Tracepoints.html#Listing-Tracepoints" title="Listing Tracepoints">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Copyright (C) 1988, 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996,
+1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Free Software'' and ``Free Software Needs
+Free Documentation'', with the Front-Cover Texts being ``A GNU Manual,''
+and with the Back-Cover Texts as in (a) below.
+
+(a) The FSF's Back-Cover Text is: ``You are free to copy and modify
+this GNU Manual.  Buying copies from GNU Press supports the FSF in
+developing GNU and promoting software freedom.''-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc    { font-variant:small-caps }
+  span.roman { font-family:serif; font-weight:normal; } 
+  span.sansserif { font-family:sans-serif; font-weight:normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Starting-and-Stopping-Trace-Experiments"></a>
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Listing-Tracepoints.html#Listing-Tracepoints">Listing Tracepoints</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Set-Tracepoints.html#Set-Tracepoints">Set Tracepoints</a>
+<hr>
+</div>
+
+<h4 class="subsection">13.1.7 Starting and Stopping Trace Experiments</h4>
+
+     
+<a name="index-tstart-678"></a>
+<a name="index-start-a-new-trace-experiment-679"></a>
+<a name="index-collected-data-discarded-680"></a>
+<dl><dt><code>tstart</code><dd>This command takes no arguments.  It starts the trace experiment, and
+begins collecting data.  This has the side effect of discarding all
+the data collected in the trace buffer during the previous trace
+experiment.
+
+     <p><a name="index-tstop-681"></a><a name="index-stop-a-running-trace-experiment-682"></a><br><dt><code>tstop</code><dd>This command takes no arguments.  It ends the trace experiment, and
+stops collecting data.
+
+     <p><strong>Note</strong>: a trace experiment and data collection may stop
+automatically if any tracepoint's passcount is reached
+(see <a href="Tracepoint-Passcounts.html#Tracepoint-Passcounts">Tracepoint Passcounts</a>), or if the trace buffer becomes full.
+
+     <p><a name="index-tstatus-683"></a><a name="index-status-of-trace-data-collection-684"></a><a name="index-trace-experiment_002c-status-of-685"></a><br><dt><code>tstatus</code><dd>This command displays the status of the current trace data
+collection. 
+</dl>
+
+   <p>Here is an example of the commands we described so far:
+
+<pre class="smallexample">     (gdb) <b>trace gdb_c_test</b>
+     (gdb) <b>actions</b>
+     Enter actions for tracepoint #1, one per line.
+     &gt; collect $regs,$locals,$args
+     &gt; while-stepping 11
+       &gt; collect $regs
+       &gt; end
+     &gt; end
+     (gdb) <b>tstart</b>
+     	[time passes ...]
+     (gdb) <b>tstop</b>
+</pre>
+   </body></html>
+

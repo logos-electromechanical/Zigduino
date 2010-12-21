@@ -1,0 +1,63 @@
+<html lang="en">
+<head>
+<title>Unix Installation - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Unix.html#Unix" title="Unix">
+<link rel="prev" href="Unix.html#Unix" title="Unix">
+<link rel="next" href="Unix-Configuration-Files.html#Unix-Configuration-Files" title="Unix Configuration Files">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Unix-Installation"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Unix-Configuration-Files.html#Unix-Configuration-Files">Unix Configuration Files</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Unix.html#Unix">Unix</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Unix.html#Unix">Unix</a>
+<hr><br>
+</div>
+
+<h4 class="subsection">A.1.1 Unix Installation</h4>
+
+<p class="noindent">To build and install from the source tarball on Unix like systems:
+
+<pre class="example">     $ gunzip -c avrdude-5.8cvs.tar.gz | tar xf -
+     $ cd avrdude-5.8cvs
+     $ ./configure
+     $ make
+     $ su root -c 'make install'
+</pre>
+   <p>The default location of the install is into <code>/usr/local</code> so you
+will need to be sure that <code>/usr/local/bin</code> is in your <code>PATH</code>
+environment variable.
+
+   <p>If you do not have root access to your system, you can do the the
+following instead:
+
+<pre class="example">     $ gunzip -c avrdude-5.8cvs.tar.gz | tar xf -
+     $ cd avrdude-5.8cvs
+     $ ./configure --prefix=$HOME/local
+     $ make
+     $ make install
+</pre>
+   <ul class="menu">
+<li><a accesskey="1" href="FreeBSD-Installation.html#FreeBSD-Installation">FreeBSD Installation</a>
+<li><a accesskey="2" href="Linux-Installation.html#Linux-Installation">Linux Installation</a>
+</ul>
+
+<!-- Node -->
+</body></html>
+

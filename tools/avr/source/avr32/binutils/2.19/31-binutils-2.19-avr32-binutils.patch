@@ -1,0 +1,50 @@
+diff -Nwarup binutils-2.19/binutils/Makefile.am avr32-binutils-trunk/binutils/Makefile.am
+--- binutils/Makefile.am	2008-08-25 06:38:13.000000000 +0200
++++ binutils/Makefile.am	2009-09-22 14:32:29.000000000 +0200
+@@ -578,7 +578,7 @@ readelf.o: readelf.c config.h sysdep.h $
+   ../bfd/bfd.h $(INCDIR)/symcat.h bucomm.h dwarf.h $(INCDIR)/elf/common.h \
+   $(INCDIR)/elf/external.h $(INCDIR)/elf/internal.h $(INCDIR)/elf/h8.h \
+   $(INCDIR)/elf/reloc-macros.h $(INCDIR)/elf/alpha.h \
+-  $(INCDIR)/elf/arc.h $(INCDIR)/elf/arm.h $(INCDIR)/elf/avr.h \
++  $(INCDIR)/elf/arc.h $(INCDIR)/elf/arm.h $(INCDIR)/elf/avr.h $(INCDIR)/elf/avr32.h\
+   $(INCDIR)/elf/bfin.h $(INCDIR)/elf/cr16.h $(INCDIR)/elf/cris.h \
+   $(INCDIR)/elf/crx.h $(INCDIR)/elf/d10v.h $(INCDIR)/elf/d30v.h \
+   $(INCDIR)/elf/dlx.h $(INCDIR)/elf/fr30.h $(INCDIR)/elf/frv.h \
+diff -Nwarup binutils-2.19/binutils/readelf.c avr32-binutils-trunk/binutils/readelf.c
+--- binutils/readelf.c	2008-09-17 11:00:44.000000000 +0200
++++ binutils/readelf.c	2009-09-22 14:32:29.000000000 +0200
+@@ -113,6 +113,7 @@
+ #include "elf/arc.h"
+ #include "elf/arm.h"
+ #include "elf/avr.h"
++#include "elf/avr32.h"
+ #include "elf/bfin.h"
+ #include "elf/cr16.h"
+ #include "elf/cris.h"
+@@ -571,6 +572,7 @@ guess_is_rela (unsigned int e_machine)
+     case EM_ALPHA:
+     case EM_ALTERA_NIOS2:
+     case EM_AVR:
++    case EM_AVR32:
+     case EM_AVR_OLD:
+     case EM_BLACKFIN:
+     case EM_CR16:
+@@ -1012,6 +1014,10 @@ dump_relocations (FILE *file,
+ 	  rtype = elf_avr_reloc_type (type);
+ 	  break;
+ 
++	case EM_AVR32:
++	  rtype = elf_avr32_reloc_type (type);
++	  break;
++
+ 	case EM_OLD_SPARCV9:
+ 	case EM_SPARC32PLUS:
+ 	case EM_SPARCV9:
+@@ -1794,6 +1800,7 @@ get_machine_name (unsigned e_machine)
+     case EM_VAX:		return "Digital VAX";
+     case EM_AVR_OLD:
+     case EM_AVR:		return "Atmel AVR 8-bit microcontroller";
++    case EM_AVR32:		return "Atmel AVR32 32-bit microprocessor";
+     case EM_CRIS:		return "Axis Communications 32-bit embedded processor";
+     case EM_JAVELIN:		return "Infineon Technologies 32-bit embedded cpu";
+     case EM_FIREPATH:		return "Element 14 64-bit DSP processor";

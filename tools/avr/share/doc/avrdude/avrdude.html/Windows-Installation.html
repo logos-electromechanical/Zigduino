@@ -1,0 +1,54 @@
+<html lang="en">
+<head>
+<title>Windows Installation - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Windows.html#Windows" title="Windows">
+<link rel="prev" href="Windows.html#Windows" title="Windows">
+<link rel="next" href="Windows-Configuration-Files.html#Windows-Configuration-Files" title="Windows Configuration Files">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Windows-Installation"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Windows-Configuration-Files.html#Windows-Configuration-Files">Windows Configuration Files</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Windows.html#Windows">Windows</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Windows.html#Windows">Windows</a>
+<hr><br>
+</div>
+
+<h4 class="subsection">A.2.1 Installation</h4>
+
+<p class="noindent">A Windows executable of avrdude is included in WinAVR which can be found at
+<a href="http://sourceforge.net/projects/winavr">http://sourceforge.net/projects/winavr</a>. WinAVR is a suite of executable,
+open source software development tools for the AVR for the Windows platform.
+
+   <p>To build avrdude from the source You must have Cygwin (<a href="http://www.cygwin.com/">http://www.cygwin.com/</a>).
+
+   <p>To build and install from the source tarball for Windows (using Cygwin):
+
+<pre class="example">     $ set PREFIX=&lt;your install directory path&gt;
+     $ export PREFIX
+     $ gunzip -c avrdude-5.8cvs.tar.gz | tar xf -
+     $ cd avrdude-5.8cvs
+     $ ./configure LDFLAGS="-static" --prefix=$PREFIX --datadir=$PREFIX
+     --sysconfdir=$PREFIX/bin --enable-versioned-doc=no
+     $ make
+     $ make install
+</pre>
+   <!-- Node -->
+</body></html>
+

@@ -1,0 +1,74 @@
+<html lang="en">
+<head>
+<title>Part Definitions - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Configuration-File.html#Configuration-File" title="Configuration File">
+<link rel="prev" href="Programmer-Definitions.html#Programmer-Definitions" title="Programmer Definitions">
+<link rel="next" href="Other-Notes.html#Other-Notes" title="Other Notes">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Part-Definitions"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Other-Notes.html#Other-Notes">Other Notes</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="Programmer-Definitions.html#Programmer-Definitions">Programmer Definitions</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Configuration-File.html#Configuration-File">Configuration File</a>
+<hr><br>
+</div>
+
+<h3 class="section">4.3 Part Definitions</h3>
+
+<pre class="smallexample">     part
+         id               = &lt;id&gt; ;                 # quoted string
+         desc             = &lt;description&gt; ;        # quoted string
+         devicecode       = &lt;num&gt; ;                # numeric
+         chip_erase_delay = &lt;num&gt; ;                # micro-seconds
+         pagel            = &lt;num&gt; ;                # pin name in hex, i.e., 0xD7
+         bs2              = &lt;num&gt; ;                # pin name in hex, i.e., 0xA0
+         reset            = dedicated | io;
+         retry_pulse      = reset | sck;
+         pgm_enable       = &lt;instruction format&gt; ;
+         chip_erase       = &lt;instruction format&gt; ;
+         memory &lt;memtype&gt;
+             paged           = &lt;yes/no&gt; ;          # yes / no
+             size            = &lt;num&gt; ;             # bytes
+             page_size       = &lt;num&gt; ;             # bytes
+             num_pages       = &lt;num&gt; ;             # numeric
+             min_write_delay = &lt;num&gt; ;             # micro-seconds
+             max_write_delay = &lt;num&gt; ;             # micro-seconds
+             readback_p1     = &lt;num&gt; ;             # byte value
+             readback_p2     = &lt;num&gt; ;             # byte value
+             pwroff_after_write = &lt;yes/no&gt; ;       # yes / no
+             read            = &lt;instruction format&gt; ;
+             write           = &lt;instruction format&gt; ;
+             read_lo         = &lt;instruction format&gt; ;
+             read_hi         = &lt;instruction format&gt; ;
+             write_lo        = &lt;instruction format&gt; ;
+             write_hi        = &lt;instruction format&gt; ;
+             loadpage_lo     = &lt;instruction format&gt; ;
+             loadpage_hi     = &lt;instruction format&gt; ;
+             writepage       = &lt;instruction format&gt; ;
+           ;
+       ;
+</pre>
+<ul class="menu">
+<li><a accesskey="1" href="Instruction-Format.html#Instruction-Format">Instruction Format</a>
+</ul>
+
+<!-- Node -->
+</body></html>
+

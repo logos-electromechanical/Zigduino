@@ -1,0 +1,80 @@
+<html lang="en">
+<head>
+<title>Other Notes - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Configuration-File.html#Configuration-File" title="Configuration File">
+<link rel="prev" href="Part-Definitions.html#Part-Definitions" title="Part Definitions">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Other-Notes"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="Part-Definitions.html#Part-Definitions">Part Definitions</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Configuration-File.html#Configuration-File">Configuration File</a>
+<hr><br>
+</div>
+
+<h3 class="section">4.4 Other Notes</h3>
+
+     <ul>
+<li>The <code>devicecode</code> parameter is the device code used by the STK500
+and is obtained from the software section (<code>avr061.zip</code>) of
+Atmel's AVR061 application note available from
+<a href="http://www.atmel.com/atmel/acrobat/doc2525.pdf">http://www.atmel.com/atmel/acrobat/doc2525.pdf</a>.
+
+     <li>Not all memory types will implement all instructions.
+
+     <li>AVR Fuse bits and Lock bits are implemented as a type of memory.
+
+     <li>Example memory types are: <code>flash</code>, <code>eeprom</code>, <code>fuse</code>,
+<code>lfuse</code> (low fuse), <code>hfuse</code> (high fuse), <code>efuse</code>
+(extended fuse), <code>signature</code>, <code>calibration</code>, <code>lock</code>.
+
+     <li>The memory type specified on the AVRDUDE command line must match one of
+the memory types defined for the specified chip.
+
+     <li>The <code>pwroff_after_write</code> flag causes AVRDUDE to attempt to power
+the device off and back on after an unsuccessful write to the affected
+memory area if VCC programmer pins are defined.  If VCC pins are not
+defined for the programmer, a message indicating that the device needs a
+power-cycle is printed out.  This flag was added to work around a
+problem with the at90s4433/2333's; see the at90s4433 errata at:
+
+     <p><a href="http://www.atmel.com/atmel/acrobat/doc1280.pdf">http://www.atmel.com/atmel/acrobat/doc1280.pdf</a>
+
+     <li>The boot loader from application note AVR109 (and thus also the AVR
+Butterfly) does not support writing of fuse bits.  Writing lock bits
+is supported, but is restricted to the boot lock bits (BLBxx).  These
+are restrictions imposed by the underlying SPM instruction that is used
+to program the device from inside the boot loader.  Note that programming
+the boot lock bits can result in a &ldquo;shoot-into-your-foot&rdquo; scenario as
+the only way to unprogram these bits is a chip erase, which will also
+erase the boot loader code.
+
+     <p>The boot loader implements the &ldquo;chip erase&rdquo; function by erasing the
+flash pages of the application section.
+
+     <p>Reading fuse and lock bits is fully supported.
+
+     <p>Note that due to the unability to write the fuse bits, the safemode
+functionality does not make sense for these boot loaders.
+
+</ul>
+
+<!-- Node -->
+</body></html>
+

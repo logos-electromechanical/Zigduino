@@ -1,0 +1,1367 @@
+diff -Nwarup binutils-2.19/ld/configdoc.texi avr32-binutils-trunk/ld/configdoc.texi
+--- ld/configdoc.texi	2008-09-10 09:50:21.000000000 +0200
++++ ld/configdoc.texi	2009-09-22 14:32:52.000000000 +0200
+@@ -7,6 +7,7 @@
+ @set H8300
+ @set HPPA
+ @set I960
++@set AVR32
+ @set M68HC11
+ @set M68K
+ @set MMIX
+--- ld/configure.tgt.orig	2008-08-08 23:35:13.000000000 -0600
++++ ld/configure.tgt	2009-12-13 22:03:15.453125000 -0700
+@@ -109,6 +109,9 @@ xscale-*-elf)		targ_emul=armelf
+ avr-*-*)		targ_emul=avr2
+ 			targ_extra_emuls="avr1 avr25 avr3 avr31 avr35 avr4 avr5 avr51 avr6"
+ 			;;
++avr32-*-none)           targ_emul=avr32elf_ap7000
++                        targ_extra_emuls="avr32elf_ap7001 avr32elf_ap7002 avr32elf_ap7200 avr32elf_uc3a0128 avr32elf_uc3a0256 avr32elf_uc3a0512 avr32elf_uc3a0512es avr32elf_uc3a1128 avr32elf_uc3a1256 avr32elf_uc3a1512es avr32elf_uc3a1512 avr32elf_uc3a364 avr32elf_uc3a364s avr32elf_uc3a3128 avr32elf_uc3a3128s avr32elf_uc3a3256 avr32elf_uc3a3256s avr32elf_uc3b064 avr32elf_uc3b0128 avr32elf_uc3b0256es avr32elf_uc3b0256 avr32elf_uc3b0512 avr32elf_uc3b0512revc avr32elf_uc3b164 avr32elf_uc3b1128 avr32elf_uc3b1256es avr32elf_uc3b1256 avr32elf_uc3b1512 avr32elf_uc3b1512revc avr32elf_uc3c064c avr32elf_uc3c0128c avr32elf_uc3c0256c avr32elf_uc3c0512crevc avr32elf_uc3c164c avr32elf_uc3c1128c avr32elf_uc3c1256c avr32elf_uc3c1512crevc avr32elf_uc3c264c avr32elf_uc3c2128c avr32elf_uc3c2256c avr32elf_uc3c2512crevc avr32elf_uc3l064 avr32elf_uc3l032 avr32elf_uc3l016 avr32elf_uc3l064revb" ;;
++avr32-*-linux*)         targ_emul=avr32linux ;;
+ bfin-*-elf)		targ_emul=elf32bfin;
+ 			targ_extra_emuls="elf32bfinfd"
+ 			targ_extra_libpath=$targ_extra_emuls
+--- /dev/null	2006-11-30 17:00:00.000000000 -0700
++++ ld/emulparams/avr32elf.sh	2009-10-29 15:57:57.218750000 -0700
+@@ -0,0 +1,274 @@
++# This script is called from ld/genscript.sh 
++# There is a difference on how 'bash' and POSIX handles 
++# the  '.' (source) command in a script.
++# genscript.sh calls this script with argument ${EMULATION_NAME}
++# but that will fail on POSIX compilant shells like 'sh' or 'dash'
++# therefor I use the variable directly instead of $1 
++EMULATION=${EMULATION_NAME}
++SCRIPT_NAME=avr32
++TEMPLATE_NAME=elf32
++EXTRA_EM_FILE=avr32elf
++OUTPUT_FORMAT="elf32-avr32"
++ARCH=avr32
++MAXPAGESIZE=4096
++ENTRY=_start
++EMBEDDED=yes
++NO_SMALL_DATA=yes
++NOP=0xd703d703
++
++DATA_SEGMENT_ALIGN=8
++BSS_ALIGNMENT=8
++
++RO_LMA_REGION="FLASH"
++RO_VMA_REGION="FLASH"
++RW_LMA_REGION="FLASH"
++RW_VMA_REGION="CPUSRAM"
++
++STACK_SIZE=_stack_size
++STACK_ADDR="ORIGIN(CPUSRAM) + LENGTH(CPUSRAM) - ${STACK_SIZE}"
++
++DATA_SEGMENT_END="
++  __heap_start__ = ALIGN(8);
++  . = ${STACK_ADDR};
++  __heap_end__ = .;
++"
++
++case "$EMULATION" in
++avr32elf_ap*)
++    MACHINE=ap
++    INITIAL_READONLY_SECTIONS="
++    .reset : {  *(.reset) } >FLASH AT>FLASH
++    . = . & 0x9fffffff;
++"
++    TEXT_START_ADDR=0xa0000000
++    case "$EMULATION" in
++	    avr32elf_ap700[0-2])
++	       MEMORY="
++MEMORY
++{
++    FLASH (rxai) : ORIGIN = 0x00000000, LENGTH = 64M
++    CPUSRAM (rwxa) : ORIGIN = 0x24000000, LENGTH = 32K
++}
++"
++        ;;
++    avr32elf_ap7200)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai) : ORIGIN = 0x00000000, LENGTH = 64M
++    CPUSRAM (rwxa) : ORIGIN = 0x08000000, LENGTH = 64K
++}
++"
++        ;;
++    esac
++    ;;
++
++avr32elf_uc3*)
++    MACHINE=uc
++    INITIAL_READONLY_SECTIONS=".reset : {  *(.reset) } >FLASH AT>FLASH"
++    TEXT_START_ADDR=0x80000000
++    OTHER_SECTIONS="
++  .userpage :  { *(.userpage .userpage.*)  } >USERPAGE AT>USERPAGE
++  .factorypage :  { *(.factorypage .factorypage.*)  } >FACTORYPAGE AT>FACTORYPAGE
++"
++
++    case "$EMULATION" in
++    avr32elf_uc3[ac][012]512*)
++       MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 512K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0xFFFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3[ac][012]256*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 256K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0xFFFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3b[01]512revc)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 512K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x17FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++         PADDING="
++  .padding : {
++  QUAD(0)
++  QUAD(0)
++  QUAD(0)
++  QUAD(0)
++  } >FLASH AT>FLASH
++"
++        ;;
++
++    avr32elf_uc3b[01]512)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 512K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x17FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3b[01]256*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 256K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x7FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3[abc][012]128*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 128K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x7FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3[bc][0123]64*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 64K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x3FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        ;;
++
++    avr32elf_uc3a3256*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 256K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0xFFFC
++    HSBSRAM (wxa!ri) : ORIGIN = 0xFF000000, LENGTH = 64K
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .hsbsram       : { *(.hsbsram .hsbsram.*) } >HSBSRAM AT>FLASH :FLASH
++"
++  		
++        ;;
++
++    avr32elf_uc3a3128*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 128K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0xFFFC
++    HSBSRAM (wxa!ri) : ORIGIN = 0xFF000000, LENGTH = 64K
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .hsbsram       : { *(.hsbsram .hsbsram.*) } >HSBSRAM AT>FLASH :FLASH
++"
++        ;;
++
++    avr32elf_uc3a364*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 64K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0xFFFC
++    HSBSRAM (wxa!ri) : ORIGIN = 0xFF000000, LENGTH = 64K
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .hsbsram       : { *(.hsbsram .hsbsram.*) } >HSBSRAM AT>FLASH :FLASH
++"
++        ;;
++
++
++    avr32elf_uc3l[0123]64*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 64K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x3FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++    FLASHVAULT_FLASH_SIZE (r) : ORIGIN = 0x80800400, LENGTH = 8
++    FLASHVAULT_RAM_SIZE (r) : ORIGIN = 0x80800408, LENGTH = 8
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .flashvault_flash_size : { KEEP(*(.flashvault_flash_size .flashvault_flash_size.*)) } > FLASHVAULT_FLASH_SIZE
++  .flashvault_ram_size   : { KEEP(*(.flashvault_ram_size .flashvault_ram_size.*)) } > FLASHVAULT_RAM_SIZE
++"
++        ;;
++
++    avr32elf_uc3l[0123]32*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 32K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x3FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++    FLASHVAULT_FLASH_SIZE (r) : ORIGIN = 0x80800400, LENGTH = 8
++    FLASHVAULT_RAM_SIZE (r) : ORIGIN = 0x80800408, LENGTH = 8
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .flashvault_flash_size : { KEEP(*(.flashvault_flash_size .flashvault_flash_size.*)) } > FLASHVAULT_FLASH_SIZE
++  .flashvault_ram_size   : { KEEP(*(.flashvault_ram_size .flashvault_ram_size.*)) } > FLASHVAULT_RAM_SIZE
++"
++        ;;
++
++    avr32elf_uc3l[0123]16*)
++        MEMORY="
++MEMORY
++{
++    FLASH (rxai!w) : ORIGIN = 0x80000000, LENGTH = 16K
++    CPUSRAM (wxa!ri) : ORIGIN = 0x00000004, LENGTH = 0x1FFC
++    USERPAGE : ORIGIN = 0x80800000, LENGTH = 512
++    FACTORYPAGE : ORIGIN = 0x80800200, LENGTH = 512
++    FLASHVAULT_FLASH_SIZE (r) : ORIGIN = 0x80800400, LENGTH = 8
++    FLASHVAULT_RAM_SIZE (r) : ORIGIN = 0x80800408, LENGTH = 8
++}
++"
++        OTHER_SECTIONS="${OTHER_SECTIONS}
++  .flashvault_flash_size : { KEEP(*(.flashvault_flash_size .flashvault_flash_size.*)) } > FLASHVAULT_FLASH_SIZE
++  .flashvault_ram_size   : { KEEP(*(.flashvault_ram_size .flashvault_ram_size.*)) } > FLASHVAULT_RAM_SIZE
++"
++        ;;
++    esac
++    ;;
++
++esac
+diff -Nwarup binutils-2.19/ld/emulparams/avr32linux.sh avr32-binutils-trunk/ld/emulparams/avr32linux.sh
+--- ld/emulparams/avr32linux.sh	1970-01-01 01:00:00.000000000 +0100
++++ ld/emulparams/avr32linux.sh	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,14 @@
++ARCH=avr32
++SCRIPT_NAME=elf
++TEMPLATE_NAME=elf32
++EXTRA_EM_FILE=avr32elf
++OUTPUT_FORMAT="elf32-avr32"
++GENERATE_SHLIB_SCRIPT=yes
++MAXPAGESIZE=0x1000
++TEXT_START_ADDR=0x00001000
++NOP=0xd703d703
++
++# This appears to place the GOT before the data section, which is
++# essential for uClinux.  We don't use those .s* sections on AVR32
++# anyway, so it shouldn't hurt for regular Linux either...
++NO_SMALL_DATA=yes
+diff -Nwarup binutils-2.19/ld/emultempl/avr32elf.em avr32-binutils-trunk/ld/emultempl/avr32elf.em
+--- ld/emultempl/avr32elf.em	1970-01-01 01:00:00.000000000 +0100
++++ ld/emultempl/avr32elf.em	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,162 @@
++# This shell script emits a C file. -*- C -*-
++#   Copyright (C) 2007,2008,2009 Atmel Corporation
++#
++# This file is part of GLD, the Gnu Linker.
++#
++# This program is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.
++#
++
++# This file is sourced from elf32.em, and defines extra avr32-elf
++# specific routines.
++#
++
++# Generate linker script for writable rodata
++LD_FLAG=rodata-writable
++DATA_ALIGNMENT=${DATA_ALIGNMENT_}
++RELOCATING=" "
++WRITABLE_RODATA=" "
++( echo "/* Linker script for writable rodata */"
++  . ${CUSTOMIZER_SCRIPT} ${EMULATION_NAME}
++  . ${srcdir}/scripttempl/${SCRIPT_NAME}.sc
++) | sed -e '/^ *$/d;s/[ 	]*$//' > ldscripts/${EMULATION_NAME}.xwr
++
++
++cat >> e${EMULATION_NAME}.c <<EOF
++
++#include "libbfd.h"
++#include "elf32-avr32.h"
++
++/* Whether to allow direct references (sub or mov) to SEC_DATA and
++   !SEC_CONTENTS sections when optimizing.  Not enabled by default
++   since it might cause link errors.  */
++static int direct_data_refs = 0;
++
++static void avr32_elf_after_open (void)
++{
++  bfd_elf32_avr32_set_options (&link_info, direct_data_refs);
++  gld${EMULATION_NAME}_after_open ();
++}
++
++static int rodata_writable = 0;
++
++static int stack_size = 0x1000;
++
++static void avr32_elf_set_symbols (void)
++{
++  /* Glue the assignments into the abs section.  */
++  lang_statement_list_type *save = stat_ptr;
++
++
++  stat_ptr = &(abs_output_section->children);
++
++  lang_add_assignment (exp_assop ('=', "_stack_size",
++                                  exp_intop (stack_size)));
++  
++  stat_ptr = save;
++}
++
++static char * gld${EMULATION_NAME}_get_script (int *isfile);
++
++static char * avr32_elf_get_script (int *isfile)
++{
++  if ( rodata_writable )
++    {
++EOF
++if test -n "$COMPILE_IN"
++then
++# Scripts compiled in.
++
++# sed commands to quote an ld script as a C string.
++sc="-f stringify.sed"
++
++cat >>e${EMULATION_NAME}.c <<EOF
++      *isfile = 0;
++      return
++EOF
++sed $sc ldscripts/${EMULATION_NAME}.xwr			>> e${EMULATION_NAME}.c
++echo  ';'	                                        >> e${EMULATION_NAME}.c
++else
++# Scripts read from the filesystem.
++
++cat >>e${EMULATION_NAME}.c <<EOF
++      *isfile = 1;
++      return "ldscripts/${EMULATION_NAME}.xwr";
++EOF
++fi
++
++cat >>e${EMULATION_NAME}.c <<EOF
++    }
++  return gld${EMULATION_NAME}_get_script (isfile);
++}
++
++
++EOF
++
++# Define some shell vars to insert bits of code into the standard elf
++# parse_args and list_options functions.
++#
++PARSE_AND_LIST_PROLOGUE='
++#define OPTION_DIRECT_DATA		300
++#define OPTION_NO_DIRECT_DATA		301
++#define OPTION_RODATA_WRITABLE		302
++#define OPTION_NO_RODATA_WRITABLE	303
++#define OPTION_STACK 	                304
++'
++
++PARSE_AND_LIST_LONGOPTS='
++  { "direct-data", no_argument, NULL, OPTION_DIRECT_DATA },
++  { "no-direct-data", no_argument, NULL, OPTION_NO_DIRECT_DATA },
++  { "rodata-writable", no_argument, NULL, OPTION_RODATA_WRITABLE },
++  { "no-rodata-writable", no_argument, NULL, OPTION_NO_RODATA_WRITABLE },
++  { "stack", required_argument, NULL, OPTION_STACK },
++'
++
++PARSE_AND_LIST_OPTIONS='
++  fprintf (file, _("  --direct-data\t\tAllow direct data references when optimizing\n"));
++  fprintf (file, _("  --no-direct-data\tDo not allow direct data references when optimizing\n"));
++  fprintf (file, _("  --rodata-writable\tPut read-only data in writable data section\n"));
++  fprintf (file, _("  --no-rodata-writable\tDo not put read-only data in writable data section\n"));
++  fprintf (file, _("  --stack <size>\tSet the initial size of the stack\n"));
++'
++
++PARSE_AND_LIST_ARGS_CASES='
++    case OPTION_DIRECT_DATA:
++      direct_data_refs = 1;
++      break;
++    case OPTION_NO_DIRECT_DATA:
++      direct_data_refs = 0;
++      break;
++    case OPTION_RODATA_WRITABLE:
++      rodata_writable = 1;
++      break;
++    case OPTION_NO_RODATA_WRITABLE:
++      rodata_writable = 0;
++      break;
++    case OPTION_STACK: 
++     {
++      char *end;
++      stack_size = strtoul (optarg, &end, 0);
++      if (end == optarg)
++        einfo (_("%P%F: invalid hex number for parameter '%s'\n"), optarg);
++      optarg = end;
++      break;
++     }
++'
++
++# Replace some of the standard ELF functions with our own versions.
++#
++LDEMUL_AFTER_OPEN=avr32_elf_after_open
++LDEMUL_GET_SCRIPT=avr32_elf_get_script
++LDEMUL_SET_SYMBOLS=avr32_elf_set_symbols
+--- ld/Makefile.am.orig	2008-09-09 02:02:19.000000000 -0600
++++ ld/Makefile.am	2009-12-13 22:13:03.703125000 -0700
+@@ -142,6 +142,53 @@ ALL_EMULATIONS = \
+ 	eavr5.o \
+ 	eavr51.o \
+ 	eavr6.o \
++	eavr32elf_ap7000.o \
++	eavr32elf_ap7001.o \
++	eavr32elf_ap7002.o \
++	eavr32elf_ap7200.o \
++	eavr32elf_uc3a0128.o \
++	eavr32elf_uc3a0256.o \
++	eavr32elf_uc3a0512.o \
++	eavr32elf_uc3a0512es.o \
++	eavr32elf_uc3a1128.o \
++	eavr32elf_uc3a1256.o \
++	eavr32elf_uc3a1512es.o \
++	eavr32elf_uc3a1512.o \
++	eavr32elf_uc3a364.o \
++	eavr32elf_uc3a364s.o \
++	eavr32elf_uc3a3128.o \
++	eavr32elf_uc3a3128s.o \
++	eavr32elf_uc3a3256.o \
++	eavr32elf_uc3a3256s.o \
++	eavr32elf_uc3b064.o \
++	eavr32elf_uc3b0128.o \
++	eavr32elf_uc3b0256es.o \
++	eavr32elf_uc3b0256.o \
++	eavr32elf_uc3b0512.o \
++	eavr32elf_uc3b0512revc.o \
++	eavr32elf_uc3b164.o \
++	eavr32elf_uc3b1128.o \
++	eavr32elf_uc3b1256es.o \
++	eavr32elf_uc3b1256.o \
++	eavr32elf_uc3b1512.o \
++	eavr32elf_uc3b1512revc.o \
++	eavr32elf_uc3c064c.o \
++	eavr32elf_uc3c0128c.o \
++	eavr32elf_uc3c0256c.o \
++	eavr32elf_uc3c0512crevc.o \
++	eavr32elf_uc3c164c.o \
++	eavr32elf_uc3c1128c.o \
++	eavr32elf_uc3c1256c.o \
++	eavr32elf_uc3c1512crevc.o \
++	eavr32elf_uc3c264c.o \
++	eavr32elf_uc3c2128c.o \
++	eavr32elf_uc3c2256c.o \
++	eavr32elf_uc3c2512crevc.o \
++	eavr32elf_uc3l064.o \
++	eavr32elf_uc3l032.o \
++	eavr32elf_uc3l016.o \
++	eavr32elf_uc3l064revb.o \
++	eavr32linux.o \
+ 	ecoff_i860.o \
+ 	ecoff_sparc.o \
+ 	eelf32_spu.o \
+@@ -646,6 +693,194 @@ eavr6.c: $(srcdir)/emulparams/avr6.sh $(
+   $(ELF_DEPS) $(srcdir)/scripttempl/avr.sc \
+   ${GEN_DEPENDS}
+ 	${GENSCRIPTS} avr6 "$(tdir_avr2)"
++eavr32elf_ap7000.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_ap7000 "$(tdir_avr32)" avr32elf
++eavr32elf_ap7001.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_ap7001 "$(tdir_avr32)" avr32elf
++eavr32elf_ap7002.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_ap7002 "$(tdir_avr32)" avr32elf
++eavr32elf_ap7200.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_ap7200 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a0128.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a0128 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a0256.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a0256 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a0512.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a0512 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a0512es.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a0512es "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a1128.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a1128 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a1256.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a1256 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a1512.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a1512 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a1512es.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a1512es "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a364.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a364 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a364s.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a364s "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a3128.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a3128 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a3128s.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a3128s "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a3256.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a3256 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3a3256s.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3a3256s "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b064.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b064 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b0128.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b0128 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b0256.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b0256 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b0256es.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b0256es "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b0512.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b0512 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b0512revc.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b0512revc "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b164.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b164 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b1128.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b1128 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b1256.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b1256 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b1256es.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b1256es "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b1512.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b1512 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3b1512revc.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3b1512revc "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c064c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c064c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c0128c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c0128c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c0256c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c0256c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c0512crevc.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c0512crevc "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c164c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c164c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c1128c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c1128c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c1256c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c1256c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c1512crevc.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c1512crevc "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c264c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c264c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c2128c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c2128c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c2256c.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c2256c "$(tdir_avr32)" avr32elf
++eavr32elf_uc3c2512crevc.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3c2512crevc "$(tdir_avr32)" avr32elf
++eavr32elf_uc3l064.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3l064 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3l032.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3l032 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3l016.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3l016 "$(tdir_avr32)" avr32elf
++eavr32elf_uc3l064revb.c: $(srcdir)/emulparams/avr32elf.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/avr32.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32elf_uc3l064revb "$(tdir_avr32)" avr32elf
++eavr32linux.c: $(srcdir)/emulparams/avr32linux.sh \
++  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/avr32elf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++	${GENSCRIPTS} avr32linux "$(tdir_avr32)"
+ ecoff_i860.c: $(srcdir)/emulparams/coff_i860.sh \
+   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/i860coff.sc ${GEN_DEPENDS}
+ 	${GENSCRIPTS} coff_i860 "$(tdir_coff_i860)"
+@@ -1902,7 +2137,9 @@ install-exec-local: ld-new$(EXEEXT)
+ 	  || $(LIBTOOL) --mode=install $(INSTALL_PROGRAM) ld-new$(EXEEXT) $(DESTDIR)$(tooldir)/bin/ld$(EXEEXT); \
+ 	fi
+ 
+-install-data-local:
++# We want install to imply install-info as per GNU standards, despite the
++# cygnus option.
++install-data-local: install-info
+ 	$(mkinstalldirs) $(DESTDIR)$(scriptdir)/ldscripts
+ 	for f in ldscripts/*; do \
+ 	  $(INSTALL_DATA) $$f $(DESTDIR)$(scriptdir)/$$f ; \
+diff -Nwarup binutils-2.19/ld/scripttempl/avr32.sc avr32-binutils-trunk/ld/scripttempl/avr32.sc
+--- ld/scripttempl/avr32.sc	1970-01-01 01:00:00.000000000 +0100
++++ ld/scripttempl/avr32.sc	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,459 @@
++#
++# Unusual variables checked by this code:
++#	NOP - four byte opcode for no-op (defaults to 0)
++#	NO_SMALL_DATA - no .sbss/.sbss2/.sdata/.sdata2 sections if not
++#		empty.
++#	SMALL_DATA_CTOR - .ctors contains small data.
++#	SMALL_DATA_DTOR - .dtors contains small data.
++#	DATA_ADDR - if end-of-text-plus-one-page isn't right for data start
++#	INITIAL_READONLY_SECTIONS - at start of text segment
++#	OTHER_READONLY_SECTIONS - other than .text .init .rodata ...
++#		(e.g., .PARISC.milli)
++#	OTHER_TEXT_SECTIONS - these get put in .text when relocating
++#	OTHER_READWRITE_SECTIONS - other than .data .bss .ctors .sdata ...
++#		(e.g., .PARISC.global)
++#	OTHER_RELRO_SECTIONS - other than .data.rel.ro ...
++#		(e.g. PPC32 .fixup, .got[12])
++#	OTHER_BSS_SECTIONS - other than .bss .sbss ...
++#	OTHER_SECTIONS - at the end
++#	EXECUTABLE_SYMBOLS - symbols that must be defined for an
++#		executable (e.g., _DYNAMIC_LINK)
++#       TEXT_START_ADDR - the first byte of the text segment, after any
++#               headers.
++#       TEXT_BASE_ADDRESS - the first byte of the text segment.
++#	TEXT_START_SYMBOLS - symbols that appear at the start of the
++#		.text section.
++#	DATA_START_SYMBOLS - symbols that appear at the start of the
++#		.data section.
++#	OTHER_GOT_SYMBOLS - symbols defined just before .got.
++#	OTHER_GOT_SECTIONS - sections just after .got.
++#	OTHER_SDATA_SECTIONS - sections just after .sdata.
++#	OTHER_BSS_SYMBOLS - symbols that appear at the start of the
++#		.bss section besides __bss_start.
++#	DATA_PLT - .plt should be in data segment, not text segment.
++#	PLT_BEFORE_GOT - .plt just before .got when .plt is in data segement.
++#	BSS_PLT - .plt should be in bss segment
++#	TEXT_DYNAMIC - .dynamic in text segment, not data segment.
++#	EMBEDDED - whether this is for an embedded system.
++#	SHLIB_TEXT_START_ADDR - if set, add to SIZEOF_HEADERS to set
++#		start address of shared library.
++#	INPUT_FILES - INPUT command of files to always include
++#	WRITABLE_RODATA - if set, the .rodata section should be writable
++#	INIT_START, INIT_END -  statements just before and just after
++# 	combination of .init sections.
++#	FINI_START, FINI_END - statements just before and just after
++# 	combination of .fini sections.
++#	STACK_ADDR - start of a .stack section.
++#	OTHER_END_SYMBOLS - symbols to place right at the end of the script.
++#	SEPARATE_GOTPLT - if set, .got.plt should be separate output section,
++#		so that .got can be in the RELRO area.  It should be set to
++#		the number of bytes in the beginning of .got.plt which can be
++#		in the RELRO area as well.
++#
++# When adding sections, do note that the names of some sections are used
++# when specifying the start address of the next.
++#
++
++#  Many sections come in three flavours.  There is the 'real' section,
++#  like ".data".  Then there are the per-procedure or per-variable
++#  sections, generated by -ffunction-sections and -fdata-sections in GCC,
++#  and useful for --gc-sections, which for a variable "foo" might be
++#  ".data.foo".  Then there are the linkonce sections, for which the linker
++#  eliminates duplicates, which are named like ".gnu.linkonce.d.foo".
++#  The exact correspondences are:
++#
++#  Section	Linkonce section
++#  .text	.gnu.linkonce.t.foo
++#  .rodata	.gnu.linkonce.r.foo
++#  .data	.gnu.linkonce.d.foo
++#  .bss		.gnu.linkonce.b.foo
++#  .sdata	.gnu.linkonce.s.foo
++#  .sbss	.gnu.linkonce.sb.foo
++#  .sdata2	.gnu.linkonce.s2.foo
++#  .sbss2	.gnu.linkonce.sb2.foo
++#  .debug_info	.gnu.linkonce.wi.foo
++#  .tdata	.gnu.linkonce.td.foo
++#  .tbss	.gnu.linkonce.tb.foo
++#
++#  Each of these can also have corresponding .rel.* and .rela.* sections.
++
++test -z "$ENTRY" && ENTRY=_start
++test -z "${BIG_OUTPUT_FORMAT}" && BIG_OUTPUT_FORMAT=${OUTPUT_FORMAT}
++test -z "${LITTLE_OUTPUT_FORMAT}" && LITTLE_OUTPUT_FORMAT=${OUTPUT_FORMAT}
++if [ -z "$MACHINE" ]; then OUTPUT_ARCH=${ARCH}; else OUTPUT_ARCH=${ARCH}:${MACHINE}; fi
++test -z "${ELFSIZE}" && ELFSIZE=32
++test -z "${ALIGNMENT}" && ALIGNMENT="${ELFSIZE} / 8"
++test "$LD_FLAG" = "N" && DATA_ADDR=.
++test -n "$CREATE_SHLIB$CREATE_PIE" && test -n "$SHLIB_DATA_ADDR" && COMMONPAGESIZE=""
++test -z "$CREATE_SHLIB$CREATE_PIE" && test -n "$DATA_ADDR" && COMMONPAGESIZE=""
++test -n "$RELRO_NOW" && unset SEPARATE_GOTPLT
++if test -n "$RELOCATING"; then
++  RO_REGION="${RO_VMA_REGION+ >}${RO_VMA_REGION}${RO_LMA_REGION+ AT>}${RO_LMA_REGION}"
++  RW_REGION="${RW_VMA_REGION+ >}${RW_VMA_REGION}${RW_LMA_REGION+ AT>}${RW_LMA_REGION}"
++  RW_BSS_REGION="${RW_VMA_REGION+ >}${RW_VMA_REGION}"
++else
++  RO_REGION=""
++  RW_REGION=""
++  RW_BSS_REGION=""
++fi
++INTERP=".interp       ${RELOCATING-0} : { *(.interp) }${RO_REGION}"
++PLT=".plt          ${RELOCATING-0} : { *(.plt) }"
++if test -z "$GOT"; then
++  if test -z "$SEPARATE_GOTPLT"; then
++    GOT=".got          ${RELOCATING-0} : { *(.got.plt) *(.got) }"
++  else
++    GOT=".got          ${RELOCATING-0} : { *(.got) }"
++    GOTPLT="${RELOCATING+${DATA_SEGMENT_RELRO_GOTPLT_END}}
++  .got.plt      ${RELOCATING-0} : { *(.got.plt) }"
++  fi
++fi
++DALIGN=".dalign	: { . = ALIGN(${DATA_SEGMENT_ALIGN}); PROVIDE(_data_lma = .); }${RO_REGION}"
++BALIGN=".balign	: { . = ALIGN(${BSS_ALIGNMENT}); _edata = .; }${RW_REGION}"
++DYNAMIC=".dynamic      ${RELOCATING-0} : { *(.dynamic) }"
++RODATA=".rodata       ${RELOCATING-0} : { *(.rodata${RELOCATING+ .rodata.* .gnu.linkonce.r.*}) }"
++DATARELRO=".data.rel.ro : { *(.data.rel.ro.local) *(.data.rel.ro*) }${RW_REGION}"
++STACKNOTE="/DISCARD/ : { *(.note.GNU-stack) }"
++if test -z "${NO_SMALL_DATA}"; then
++  SBSS=".sbss         ${RELOCATING-0} :
++  {
++    ${RELOCATING+PROVIDE (__sbss_start = .);}
++    ${RELOCATING+PROVIDE (___sbss_start = .);}
++    ${CREATE_SHLIB+*(.sbss2 .sbss2.* .gnu.linkonce.sb2.*)}
++    *(.dynsbss)
++    *(.sbss${RELOCATING+ .sbss.* .gnu.linkonce.sb.*})
++    *(.scommon)
++    ${RELOCATING+PROVIDE (__sbss_end = .);}
++    ${RELOCATING+PROVIDE (___sbss_end = .);}
++  }${RW_BSS_REGION}"
++  SBSS2=".sbss2        ${RELOCATING-0} : { *(.sbss2${RELOCATING+ .sbss2.* .gnu.linkonce.sb2.*}) }${RW_REGION}"
++  SDATA="/* We want the small data sections together, so single-instruction offsets
++     can access them all, and initialized data all before uninitialized, so
++     we can shorten the on-disk segment size.  */
++  .sdata        ${RELOCATING-0} :
++  {
++    ${RELOCATING+${SDATA_START_SYMBOLS}}
++    ${CREATE_SHLIB+*(.sdata2 .sdata2.* .gnu.linkonce.s2.*)}
++    *(.sdata${RELOCATING+ .sdata.* .gnu.linkonce.s.*})
++  }${RW_REGION}"
++  SDATA2=".sdata2       ${RELOCATING-0} : { *(.sdata2${RELOCATING+ .sdata2.* .gnu.linkonce.s2.*}) }${RW_REGION}"
++  REL_SDATA=".rel.sdata    ${RELOCATING-0} : { *(.rel.sdata${RELOCATING+ .rel.sdata.* .rel.gnu.linkonce.s.*}) }${RO_REGION}
++  .rela.sdata   ${RELOCATING-0} : { *(.rela.sdata${RELOCATING+ .rela.sdata.* .rela.gnu.linkonce.s.*}) }"
++  REL_SBSS=".rel.sbss     ${RELOCATING-0} : { *(.rel.sbss${RELOCATING+ .rel.sbss.* .rel.gnu.linkonce.sb.*}) }${RO_REGION}
++  .rela.sbss    ${RELOCATING-0} : { *(.rela.sbss${RELOCATING+ .rela.sbss.* .rela.gnu.linkonce.sb.*}) }${RO_REGION}"
++  REL_SDATA2=".rel.sdata2   ${RELOCATING-0} : { *(.rel.sdata2${RELOCATING+ .rel.sdata2.* .rel.gnu.linkonce.s2.*}) }${RO_REGION}
++  .rela.sdata2  ${RELOCATING-0} : { *(.rela.sdata2${RELOCATING+ .rela.sdata2.* .rela.gnu.linkonce.s2.*}) }${RO_REGION}"
++  REL_SBSS2=".rel.sbss2    ${RELOCATING-0} : { *(.rel.sbss2${RELOCATING+ .rel.sbss2.* .rel.gnu.linkonce.sb2.*}) }${RO_REGION}
++  .rela.sbss2   ${RELOCATING-0} : { *(.rela.sbss2${RELOCATING+ .rela.sbss2.* .rela.gnu.linkonce.sb2.*}) }${RO_REGION}"
++else
++  NO_SMALL_DATA=" "
++fi
++test -n "$SEPARATE_GOTPLT" && SEPARATE_GOTPLT=" "
++CTOR=".ctors        ${CONSTRUCTING-0} :
++  {
++    ${CONSTRUCTING+${CTOR_START}}
++    /* gcc uses crtbegin.o to find the start of
++       the constructors, so we make sure it is
++       first.  Because this is a wildcard, it
++       doesn't matter if the user does not
++       actually link against crtbegin.o; the
++       linker won't look for a file to match a
++       wildcard.  The wildcard also means that it
++       doesn't matter which directory crtbegin.o
++       is in.  */
++
++    KEEP (*crtbegin*.o(.ctors))
++
++    /* We don't want to include the .ctor section from
++       from the crtend.o file until after the sorted ctors.
++       The .ctor section from the crtend file contains the
++       end of ctors marker and it must be last */
++
++    KEEP (*(EXCLUDE_FILE (*crtend*.o $OTHER_EXCLUDE_FILES) .ctors))
++    KEEP (*(SORT(.ctors.*)))
++    KEEP (*(.ctors))
++    ${CONSTRUCTING+${CTOR_END}}
++  }"
++DTOR=".dtors        ${CONSTRUCTING-0} :
++  {
++    ${CONSTRUCTING+${DTOR_START}}
++    KEEP (*crtbegin*.o(.dtors))
++    KEEP (*(EXCLUDE_FILE (*crtend*.o $OTHER_EXCLUDE_FILES) .dtors))
++    KEEP (*(SORT(.dtors.*)))
++    KEEP (*(.dtors))
++    ${CONSTRUCTING+${DTOR_END}}
++  }"
++STACK=".stack        ${RELOCATING-0}${RELOCATING+${STACK_ADDR}} :
++  {
++    ${RELOCATING+_stack = .;}
++    *(.stack)
++    ${RELOCATING+${STACK_SIZE+. = ${STACK_SIZE};}}
++    ${RELOCATING+_estack = .;}
++  }${RW_BSS_REGION}"
++
++# if this is for an embedded system, don't add SIZEOF_HEADERS.
++if [ -z "$EMBEDDED" ]; then
++   test -z "${TEXT_BASE_ADDRESS}" && TEXT_BASE_ADDRESS="${TEXT_START_ADDR} + SIZEOF_HEADERS"
++else
++   test -z "${TEXT_BASE_ADDRESS}" && TEXT_BASE_ADDRESS="${TEXT_START_ADDR}"
++fi
++
++cat <<EOF
++OUTPUT_FORMAT("${OUTPUT_FORMAT}", "${BIG_OUTPUT_FORMAT}",
++	      "${LITTLE_OUTPUT_FORMAT}")
++OUTPUT_ARCH(${OUTPUT_ARCH})
++ENTRY(${ENTRY})
++
++${RELOCATING+${LIB_SEARCH_DIRS}}
++${RELOCATING+/* Do we need any of these for elf?
++   __DYNAMIC = 0; ${STACKZERO+${STACKZERO}} ${SHLIB_PATH+${SHLIB_PATH}}  */}
++${RELOCATING+${EXECUTABLE_SYMBOLS}}
++${RELOCATING+${INPUT_FILES}}
++${RELOCATING- /* For some reason, the Solaris linker makes bad executables
++  if gld -r is used and the intermediate file has sections starting
++  at non-zero addresses.  Could be a Solaris ld bug, could be a GNU ld
++  bug.  But for now assigning the zero vmas works.  */}
++
++${RELOCATING+${MEMORY}}
++
++SECTIONS
++{
++  /* Read-only sections, merged into text segment: */
++  ${CREATE_SHLIB-${CREATE_PIE-${RELOCATING+PROVIDE (__executable_start = ${TEXT_START_ADDR}); . = ${TEXT_BASE_ADDRESS};}}}
++  ${PADDING}
++  ${CREATE_SHLIB+${RELOCATING+. = ${SHLIB_TEXT_START_ADDR:-0} + SIZEOF_HEADERS;}}
++  ${CREATE_PIE+${RELOCATING+. = ${SHLIB_TEXT_START_ADDR:-0} + SIZEOF_HEADERS;}}
++  ${CREATE_SHLIB-${INTERP}}
++  ${INITIAL_READONLY_SECTIONS}
++  ${TEXT_DYNAMIC+${DYNAMIC}${RO_REGION}}
++  .hash         ${RELOCATING-0} : { *(.hash) }${RO_REGION}
++  .dynsym       ${RELOCATING-0} : { *(.dynsym) }${RO_REGION}
++  .dynstr       ${RELOCATING-0} : { *(.dynstr) }${RO_REGION}
++  .gnu.version  ${RELOCATING-0} : { *(.gnu.version) }${RO_REGION}
++  .gnu.version_d ${RELOCATING-0}: { *(.gnu.version_d) }${RO_REGION}
++  .gnu.version_r ${RELOCATING-0}: { *(.gnu.version_r) }${RO_REGION}
++
++EOF
++if [ "x$COMBRELOC" = x ]; then
++  COMBRELOCCAT=cat
++else
++  COMBRELOCCAT="cat > $COMBRELOC"
++fi
++eval $COMBRELOCCAT <<EOF
++  .rel.init     ${RELOCATING-0} : { *(.rel.init) }${RO_REGION}
++  .rela.init    ${RELOCATING-0} : { *(.rela.init) }${RO_REGION}
++  .rel.text     ${RELOCATING-0} : { *(.rel.text${RELOCATING+ .rel.text.* .rel.gnu.linkonce.t.*}) }${RO_REGION}
++  .rela.text    ${RELOCATING-0} : { *(.rela.text${RELOCATING+ .rela.text.* .rela.gnu.linkonce.t.*}) }${RO_REGION}
++  .rel.fini     ${RELOCATING-0} : { *(.rel.fini) }${RO_REGION}
++  .rela.fini    ${RELOCATING-0} : { *(.rela.fini) }${RO_REGION}
++  .rel.rodata   ${RELOCATING-0} : { *(.rel.rodata${RELOCATING+ .rel.rodata.* .rel.gnu.linkonce.r.*}) }${RO_REGION}
++  .rela.rodata  ${RELOCATING-0} : { *(.rela.rodata${RELOCATING+ .rela.rodata.* .rela.gnu.linkonce.r.*}) }${RO_REGION}
++  ${OTHER_READONLY_RELOC_SECTIONS}
++  .rel.data.rel.ro ${RELOCATING-0} : { *(.rel.data.rel.ro${RELOCATING+*}) }${RO_REGION}
++  .rela.data.rel.ro ${RELOCATING-0} : { *(.rel.data.rel.ro${RELOCATING+*}) }${RO_REGION}
++  .rel.data     ${RELOCATING-0} : { *(.rel.data${RELOCATING+ .rel.data.* .rel.gnu.linkonce.d.*}) }${RO_REGION}
++  .rela.data    ${RELOCATING-0} : { *(.rela.data${RELOCATING+ .rela.data.* .rela.gnu.linkonce.d.*}) }${RO_REGION}
++  .rel.tdata	${RELOCATING-0} : { *(.rel.tdata${RELOCATING+ .rel.tdata.* .rel.gnu.linkonce.td.*}) }${RO_REGION}
++  .rela.tdata	${RELOCATING-0} : { *(.rela.tdata${RELOCATING+ .rela.tdata.* .rela.gnu.linkonce.td.*}) }${RO_REGION}
++  .rel.tbss	${RELOCATING-0} : { *(.rel.tbss${RELOCATING+ .rel.tbss.* .rel.gnu.linkonce.tb.*}) }${RO_REGION}
++  .rela.tbss	${RELOCATING-0} : { *(.rela.tbss${RELOCATING+ .rela.tbss.* .rela.gnu.linkonce.tb.*}) }${RO_REGION}
++  .rel.ctors    ${RELOCATING-0} : { *(.rel.ctors) }${RO_REGION}
++  .rela.ctors   ${RELOCATING-0} : { *(.rela.ctors) }${RO_REGION}
++  .rel.dtors    ${RELOCATING-0} : { *(.rel.dtors) }${RO_REGION}
++  .rela.dtors   ${RELOCATING-0} : { *(.rela.dtors) }${RO_REGION}
++  .rel.got      ${RELOCATING-0} : { *(.rel.got) }${RO_REGION}
++  .rela.got     ${RELOCATING-0} : { *(.rela.got) }${RO_REGION}
++  ${OTHER_GOT_RELOC_SECTIONS}
++  ${REL_SDATA}
++  ${REL_SBSS}
++  ${REL_SDATA2}
++  ${REL_SBSS2}
++  .rel.bss      ${RELOCATING-0} : { *(.rel.bss${RELOCATING+ .rel.bss.* .rel.gnu.linkonce.b.*}) }${RO_REGION}
++  .rela.bss     ${RELOCATING-0} : { *(.rela.bss${RELOCATING+ .rela.bss.* .rela.gnu.linkonce.b.*}) }${RO_REGION}
++EOF
++if [ -n "$COMBRELOC" ]; then
++cat <<EOF
++  .rel.dyn      ${RELOCATING-0} :
++    {
++EOF
++sed -e '/^[ 	]*[{}][ 	]*$/d;/:[ 	]*$/d;/\.rela\./d;s/^.*: { *\(.*\)}$/      \1/' $COMBRELOC
++cat <<EOF
++    }${RO_REGION}
++  .rela.dyn     ${RELOCATING-0} :
++    {
++EOF
++sed -e '/^[ 	]*[{}][ 	]*$/d;/:[ 	]*$/d;/\.rel\./d;s/^.*: { *\(.*\)}/      \1/' $COMBRELOC
++cat <<EOF
++    }${RO_REGION}
++EOF
++fi
++cat <<EOF
++  .rel.plt      ${RELOCATING-0} : { *(.rel.plt) }${RO_REGION}
++  .rela.plt     ${RELOCATING-0} : { *(.rela.plt) }${RO_REGION}
++  ${OTHER_PLT_RELOC_SECTIONS}
++
++  .init         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${INIT_START}}
++    KEEP (*(.init))
++    ${RELOCATING+${INIT_END}}
++  }${RO_REGION} =${NOP-0}
++
++  ${DATA_PLT-${BSS_PLT-${PLT}${RO_REGION}}}
++  .text         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${TEXT_START_SYMBOLS}}
++    *(.text .stub${RELOCATING+ .text.* .gnu.linkonce.t.*})
++    KEEP (*(.text.*personality*))
++    /* .gnu.warning sections are handled specially by elf32.em.  */
++    *(.gnu.warning)
++    ${RELOCATING+${OTHER_TEXT_SECTIONS}}
++  }${RO_REGION} =${NOP-0}
++  .fini         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${FINI_START}}
++    KEEP (*(.fini))
++    ${RELOCATING+${FINI_END}}
++  }${RO_REGION} =${NOP-0}
++  ${RELOCATING+PROVIDE (__etext = .);}
++  ${RELOCATING+PROVIDE (_etext = .);}
++  ${RELOCATING+PROVIDE (etext = .);}
++  ${WRITABLE_RODATA-${RODATA}${RO_REGION}}
++  .rodata1      ${RELOCATING-0} : { *(.rodata1) }${RO_REGION}
++  ${CREATE_SHLIB-${SDATA2}}
++  ${CREATE_SHLIB-${SBSS2}}
++  ${OTHER_READONLY_SECTIONS}
++  .eh_frame_hdr : { *(.eh_frame_hdr) }${RO_REGION}
++  .eh_frame     ${RELOCATING-0} : ONLY_IF_RO { KEEP (*(.eh_frame)) }${RO_REGION}
++  .gcc_except_table ${RELOCATING-0} : ONLY_IF_RO { KEEP (*(.gcc_except_table)) *(.gcc_except_table.*) }${RO_REGION}
++
++  ${RELOCATING+${DALIGN}}
++  ${RELOCATING+PROVIDE (_data = ORIGIN(${RW_VMA_REGION}));}
++  . = ORIGIN(${RW_VMA_REGION});
++  /* Exception handling  */
++  .eh_frame     ${RELOCATING-0} : ONLY_IF_RW { KEEP (*(.eh_frame)) }${RW_REGION}
++  .gcc_except_table ${RELOCATING-0} : ONLY_IF_RW { KEEP (*(.gcc_except_table)) *(.gcc_except_table.*) }${RW_REGION}
++
++  /* Thread Local Storage sections  */
++  .tdata	${RELOCATING-0} : { *(.tdata${RELOCATING+ .tdata.* .gnu.linkonce.td.*}) }${RW_REGION}
++  .tbss		${RELOCATING-0} : { *(.tbss${RELOCATING+ .tbss.* .gnu.linkonce.tb.*})${RELOCATING+ *(.tcommon)} }${RW_BSS_REGION}
++
++  /* Ensure the __preinit_array_start label is properly aligned.  We
++     could instead move the label definition inside the section, but
++     the linker would then create the section even if it turns out to
++     be empty, which isn't pretty.  */
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__preinit_array_start = ALIGN(${ALIGNMENT}));}}
++  .preinit_array   ${RELOCATING-0} : { KEEP (*(.preinit_array)) }${RW_REGION}
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__preinit_array_end = .);}}
++
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__init_array_start = .);}}
++  .init_array   ${RELOCATING-0} : { KEEP (*(.init_array)) }${RW_REGION}
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__init_array_end = .);}}
++
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__fini_array_start = .);}}
++  .fini_array   ${RELOCATING-0} : { KEEP (*(.fini_array)) }${RW_REGION}
++  ${RELOCATING+${CREATE_SHLIB-PROVIDE (__fini_array_end = .);}}
++
++  ${SMALL_DATA_CTOR-${RELOCATING+${CTOR}${RW_REGION}}}
++  ${SMALL_DATA_DTOR-${RELOCATING+${DTOR}${RW_REGION}}}
++  .jcr          ${RELOCATING-0} : { KEEP (*(.jcr)) }${RW_REGION}
++
++  ${RELOCATING+${DATARELRO}}
++  ${OTHER_RELRO_SECTIONS}
++  ${TEXT_DYNAMIC-${DYNAMIC}${RW_REGION}}
++  ${NO_SMALL_DATA+${RELRO_NOW+${GOT}${RW_REGION}}}
++  ${NO_SMALL_DATA+${RELRO_NOW-${SEPARATE_GOTPLT+${GOT}${RW_REGION}}}}
++  ${NO_SMALL_DATA+${RELRO_NOW-${SEPARATE_GOTPLT+${GOTPLT}${RW_REGION}}}}
++  ${RELOCATING+${DATA_SEGMENT_RELRO_END}}
++  ${NO_SMALL_DATA+${RELRO_NOW-${SEPARATE_GOTPLT-${GOT}${RW_REGION}}}}
++
++  ${DATA_PLT+${PLT_BEFORE_GOT-${PLT}${RW_REGION}}}
++
++  .data         ${RELOCATING-0} :
++  {
++    ${RELOCATING+${DATA_START_SYMBOLS}}
++    *(.data${RELOCATING+ .data.* .gnu.linkonce.d.*})
++    KEEP (*(.gnu.linkonce.d.*personality*))
++    ${CONSTRUCTING+SORT(CONSTRUCTORS)}
++  }${RW_REGION}
++  .data1        ${RELOCATING-0} : { *(.data1) }${RW_REGION}
++  ${WRITABLE_RODATA+${RODATA}${RW_REGION}}
++  ${OTHER_READWRITE_SECTIONS}
++  ${SMALL_DATA_CTOR+${RELOCATING+${CTOR}${RW_REGION}}}
++  ${SMALL_DATA_DTOR+${RELOCATING+${DTOR}${RW_REGION}}}
++  ${DATA_PLT+${PLT_BEFORE_GOT+${PLT}${RW_REGION}}}
++  ${RELOCATING+${OTHER_GOT_SYMBOLS}}
++  ${NO_SMALL_DATA-${GOT}${RW_REGION}}
++  ${OTHER_GOT_SECTIONS}
++  ${SDATA}
++  ${OTHER_SDATA_SECTIONS}
++  ${RELOCATING+${BALIGN}}
++  ${RELOCATING+_edata = .;}
++  ${RELOCATING+PROVIDE (edata = .);}
++  ${RELOCATING+__bss_start = .;}
++  ${RELOCATING+${OTHER_BSS_SYMBOLS}}
++  ${SBSS}
++  ${BSS_PLT+${PLT}${RW_REGION}}
++  .bss          ${RELOCATING-0} :
++  {
++   *(.dynbss)
++   *(.bss${RELOCATING+ .bss.* .gnu.linkonce.b.*})
++   *(COMMON)
++   /* Align here to ensure that the .bss section occupies space up to
++      _end.  Align after .bss to ensure correct alignment even if the
++      .bss section disappears because there are no input sections.  */
++   ${RELOCATING+. = ALIGN(${BSS_ALIGNMENT});}
++  }${RW_BSS_REGION}
++  ${OTHER_BSS_SECTIONS}
++  ${RELOCATING+. = ALIGN(${BSS_ALIGNMENT});}
++  ${RELOCATING+_end = .;}
++  ${RELOCATING+${OTHER_BSS_END_SYMBOLS}}
++  ${RELOCATING+PROVIDE (end = .);}
++  ${RELOCATING+${DATA_SEGMENT_END}}
++
++  /* Stabs debugging sections.  */
++  .stab          0 : { *(.stab) }
++  .stabstr       0 : { *(.stabstr) }
++  .stab.excl     0 : { *(.stab.excl) }
++  .stab.exclstr  0 : { *(.stab.exclstr) }
++  .stab.index    0 : { *(.stab.index) }
++  .stab.indexstr 0 : { *(.stab.indexstr) }
++
++  .comment       0 : { *(.comment) }
++
++  /* DWARF debug sections.
++     Symbols in the DWARF debugging sections are relative to the beginning
++     of the section so we begin them at 0.  */
++
++  /* DWARF 1 */
++  .debug          0 : { *(.debug) }
++  .line           0 : { *(.line) }
++
++  /* GNU DWARF 1 extensions */
++  .debug_srcinfo  0 : { *(.debug_srcinfo) }
++  .debug_sfnames  0 : { *(.debug_sfnames) }
++
++  /* DWARF 1.1 and DWARF 2 */
++  .debug_aranges  0 : { *(.debug_aranges) }
++  .debug_pubnames 0 : { *(.debug_pubnames) }
++
++  /* DWARF 2 */
++  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
++  .debug_abbrev   0 : { *(.debug_abbrev) }
++  .debug_line     0 : { *(.debug_line) }
++  .debug_frame    0 : { *(.debug_frame) }
++  .debug_str      0 : { *(.debug_str) }
++  .debug_loc      0 : { *(.debug_loc) }
++  .debug_macinfo  0 : { *(.debug_macinfo) }
++
++  /* SGI/MIPS DWARF 2 extensions */
++  .debug_weaknames 0 : { *(.debug_weaknames) }
++  .debug_funcnames 0 : { *(.debug_funcnames) }
++  .debug_typenames 0 : { *(.debug_typenames) }
++  .debug_varnames  0 : { *(.debug_varnames) }
++
++  ${STACK_ADDR+${STACK}}
++  ${OTHER_SECTIONS}
++  ${RELOCATING+${OTHER_END_SYMBOLS}}
++  ${RELOCATING+${STACKNOTE}}
++}
++EOF
+diff -Nwarup binutils-2.19/ld/testsuite/ld-avr32/avr32.exp avr32-binutils-trunk/ld/testsuite/ld-avr32/avr32.exp
+--- ld/testsuite/ld-avr32/avr32.exp	1970-01-01 01:00:00.000000000 +0100
++++ ld/testsuite/ld-avr32/avr32.exp	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,25 @@
++# Expect script for AVR32 ELF linker tests.
++#   Copyright 2004-2006 Atmel Corporation.
++#
++# This file is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 2 of the License, or
++# (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
++#
++# Written by Haavard Skinnemoen (hskinnemoen@atmel.com)
++#
++
++if ![istarget avr32-*-*] {
++    return
++}
++
++run_dump_test "pcrel"
+diff -Nwarup binutils-2.19/ld/testsuite/ld-avr32/pcrel.d avr32-binutils-trunk/ld/testsuite/ld-avr32/pcrel.d
+--- ld/testsuite/ld-avr32/pcrel.d	1970-01-01 01:00:00.000000000 +0100
++++ ld/testsuite/ld-avr32/pcrel.d	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,74 @@
++#name: AVR32 ELF PC-relative external relocs
++#source: symbols.s
++#source: ../../../gas/testsuite/gas/avr32/pcrel.s
++#ld: -T $srcdir/$subdir/pcrel.ld
++#objdump: -d
++
++.*:     file format elf.*avr32.*
++
++Disassembly of section .text:
++
++a0000000 <_start>:
++a0000000:	d7 03       	nop
++a0000002:	d7 03       	nop
++
++a0000004 <test_rjmp>:
++a0000004:	d7 03       	nop
++a0000006:	c0 28       	rjmp a000000a <test_rjmp\+0x6>
++a0000008:	d7 03       	nop
++a000000a:	e0 8f 01 fb 	bral a0000400 <extsym10>
++
++a000000e <test_rcall>:
++a000000e:	d7 03       	nop
++a0000010 <test_rcall2>:
++a0000010:	c0 2c       	rcall a0000014 <test_rcall2\+0x4>
++a0000012:	d7 03       	nop
++a0000014:	ee b0 ff f6 	rcall a0200000 <extsym21>
++
++a0000018 <test_branch>:
++a0000018:	c0 31       	brne a000001e <test_branch\+0x6>
++a000001a:	fe 9f ff ff 	bral a0000018 <test_branch>
++a000001e:	ee 90 ff f1 	breq a0200000 <extsym21>
++
++a0000022 <test_lddpc>:
++a0000022:	48 30       	lddpc r0,a000002c <sym1>
++a0000024:	48 20       	lddpc r0,a000002c <sym1>
++a0000026:	fe f0 7f da 	ld.w r0,pc\[32730\]
++	...
++
++a000002c <sym1>:
++a000002c:	d7 03       	nop
++a000002e:	d7 03       	nop
++
++a0000030 <test_local>:
++a0000030:	48 20       	lddpc r0,a0000038 <test_local\+0x8>
++a0000032:	48 30       	lddpc r0,a000003c <test_local\+0xc>
++a0000034:	48 20       	lddpc r0,a000003c <test_local\+0xc>
++a0000036:	00 00       	add r0,r0
++a0000038:	d7 03       	nop
++a000003a:	d7 03       	nop
++a000003c:	d7 03       	nop
++a000003e:	d7 03       	nop
++
++Disassembly of section \.text\.init:
++a0000040 <test_inter_section>:
++a0000040:	fe b0 ff e7 	rcall a000000e <test_rcall>
++a0000044:	d7 03       	nop
++a0000046:	fe b0 ff e4 	rcall a000000e <test_rcall>
++a000004a:	fe b0 ff e3 	rcall a0000010 <test_rcall2>
++a000004e:	d7 03       	nop
++a0000050:	fe b0 ff e0 	rcall a0000010 <test_rcall2>
++
++Disassembly of section \.text\.pcrel10:
++
++a0000400 <extsym10>:
++a0000400:	d7 03       	nop
++
++Disassembly of section \.text\.pcrel16:
++
++a0008000 <extsym16>:
++a0008000:	d7 03       	nop
++
++Disassembly of section \.text\.pcrel21:
++a0200000 <extsym21>:
++a0200000:	d7 03       	nop
+diff -Nwarup binutils-2.19/ld/testsuite/ld-avr32/pcrel.ld avr32-binutils-trunk/ld/testsuite/ld-avr32/pcrel.ld
+--- ld/testsuite/ld-avr32/pcrel.ld	1970-01-01 01:00:00.000000000 +0100
++++ ld/testsuite/ld-avr32/pcrel.ld	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,23 @@
++ENTRY(_start)
++SECTIONS
++{
++	.text 0xa0000000:
++	{
++		*(.text)
++	}
++
++	.text.pcrel10 0xa0000400:
++	{
++		*(.text.pcrel10)
++	}
++
++	.text.pcrel16 0xa0008000:
++	{
++		*(.text.pcrel16)
++	}
++
++	.text.pcrel21 0xa0200000:
++	{
++		*(.text.pcrel21)
++	}
++}
+diff -Nwarup binutils-2.19/ld/testsuite/ld-avr32/symbols.s avr32-binutils-trunk/ld/testsuite/ld-avr32/symbols.s
+--- ld/testsuite/ld-avr32/symbols.s	1970-01-01 01:00:00.000000000 +0100
++++ ld/testsuite/ld-avr32/symbols.s	2009-09-22 14:32:52.000000000 +0200
+@@ -0,0 +1,20 @@
++	.text
++	.global _start
++_start:
++	nop
++	nop
++
++	.section .text.pcrel10,"ax"
++	.global extsym10
++extsym10:
++	nop
++
++	.section .text.pcrel16,"ax"
++	.global extsym16
++extsym16:
++	nop
++
++	.section .text.pcrel21,"ax"
++	.global extsym21
++extsym21:
++	nop

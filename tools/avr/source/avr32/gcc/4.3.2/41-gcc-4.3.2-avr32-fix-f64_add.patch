@@ -1,0 +1,10 @@
+--- gcc/config/avr32/lib1funcs.S	2009-03-30 21:43:16.000000000 +0100
++++ gcc/config/avr32/lib1funcs.S	2009-03-30 23:12:48.000000000 +0100
+@@ -1036,6 +1036,7 @@
+         brne    __avr32_f64_add_return_nan
+         mov     r10, 0  /* Generate Inf in r11, r10 */
+ 	mov_imm r11, 0x7ff00000
++        or      r11, r12 /* Put sign bit back */
+         ldm     sp++, r5, r6, r7, pc/* opL Inf, return Inf */
+ __avr32_f64_add_return_nan:     
+         mov     r10, -1 /* Generate NaN in r11, r10 */

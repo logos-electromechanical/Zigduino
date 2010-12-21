@@ -1,0 +1,57 @@
+<html lang="en">
+<head>
+<title>How AVRDUDE finds the configuration files. - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Windows-Configuration-Files.html#Windows-Configuration-Files" title="Windows Configuration Files">
+<link rel="prev" href="Configuration-file-names.html#Configuration-file-names" title="Configuration file names">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="How-AVRDUDE-finds-the-configuration-files_002e"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="Configuration-file-names.html#Configuration-file-names">Configuration file names</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Windows-Configuration-Files.html#Windows-Configuration-Files">Windows Configuration Files</a>
+<hr><br>
+</div>
+
+<h5 class="subsubsection">A.2.2.2 How AVRDUDE finds the configuration files.</h5>
+
+<p class="noindent">AVRDUDE on Windows has a different way of searching for the system and
+user configuration files. Below is the search method for locating the
+configuration files:
+
+     <ol type=1 start=1>
+
+     <li>The directory from which the application loaded.
+
+     <li>The current directory.
+
+     <li>The Windows system directory. On Windows NT, the name of this directory
+is <code>SYSTEM32</code>.
+
+     <li>Windows NT: The 16-bit Windows system directory. The name of this
+directory is <code>SYSTEM</code>.
+
+     <li>The Windows directory.
+
+     <li>The directories that are listed in the PATH environment variable.
+
+        </ol>
+
+<!-- Node -->
+</body></html>
+

@@ -1,0 +1,125 @@
+<html lang="en">
+<head>
+<title>Introduction - AVRDUDE</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="AVRDUDE">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="prev" href="index.html#Top" title="Top">
+<link rel="next" href="Command-Line-Options.html#Command-Line-Options" title="Command Line Options">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="Introduction"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Command-Line-Options.html#Command-Line-Options">Command Line Options</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="index.html#Top">Top</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="index.html#Top">Top</a>
+<hr><br>
+</div>
+
+<!-- node-name,  next,  previous,  up -->
+<h2 class="chapter">1 Introduction</h2>
+
+<p><a name="index-introduction-1"></a>
+AVRDUDE - AVR Downloader Uploader - is a program for downloading and
+uploading the on-chip memories of Atmel's AVR microcontrollers. It can
+program the Flash and EEPROM, and where supported by the serial
+programming protocol, it can program fuse and lock bits. AVRDUDE also
+supplies a direct instruction mode allowing one to issue any programming
+instruction to the AVR chip regardless of whether AVRDUDE implements
+that specific feature of a particular chip.
+
+   <p>AVRDUDE can be used effectively via the command line to read or write
+all chip memory types (eeprom, flash, fuse bits, lock bits, signature
+bytes) or via an interactive (terminal) mode. Using AVRDUDE from the
+command line works well for programming the entire memory of the chip
+from the contents of a file, while interactive mode is useful for
+exploring memory contents, modifing individual bytes of eeprom,
+programming fuse/lock bits, etc.
+
+   <p>AVRDUDE supports the following basic programmer types: Atmel's STK500,
+Atmel's AVRISP and AVRISP mkII devices,
+Atmel's STK600,
+Atmel's JTAG ICE (both mkI and mkII, the latter also in ISP mode), appnote
+avr910, appnote avr109 (including the AVR Butterfly),
+serial bit-bang adapters,
+and the PPI (parallel port interface). PPI represents a class
+of simple programmers where the programming lines are directly
+connected to the PC parallel port. Several pin configurations exist
+for several variations of the PPI programmers, and AVRDUDE can be be
+configured to work with them by either specifying the appropriate
+programmer on the command line or by creating a new entry in its
+configuration file. All that's usually required for a new entry is to
+tell AVRDUDE which pins to use for each programming function.
+
+   <p>A number of equally simple bit-bang programming adapters that connect
+to a serial port are supported as well, among them the popular
+Ponyprog serial adapter, and the DASA and DASA3 adapters that used to
+be supported by uisp(1).  Note that these adapters are meant to be
+attached to a physical serial port.  Connecting to a serial port
+emulated on top of USB is likely to not work at all, or to work
+abysmally slow.
+
+   <p>The STK500, JTAG ICE, avr910, and avr109/butterfly use the serial port to communicate with the PC. 
+The STK600, JTAG ICE mkII, AVRISP mkII, USBasp, and USBtinyISP
+programmers communicate through the USB, using <code>libusb</code> as a
+platform abstraction layer. 
+The STK500, STK600, JTAG ICE, and avr910 contain on-board logic to control the programming of the target
+device. 
+The avr109 bootloader implements a protocol similar to avr910, but is
+actually implemented in the boot area of the target's flash ROM, as
+opposed to being an external device. 
+The fundamental difference between the two types lies in the
+protocol used to control the programmer. The avr910 protocol is very
+simplistic and can easily be used as the basis for a simple, home made
+programer since the firmware is available online. On the other hand,
+the STK500 protocol is more robust and complicated and the firmware is
+not openly available. 
+The JTAG ICE also uses a serial communication protocol which is similar
+to the STK500 firmware version 2 one.  However, as the JTAG ICE is
+intented to allow on-chip debugging as well as memory programming, the
+protocol is more sophisticated. 
+(The JTAG ICE mkII protocol can also be run on top of USB.) 
+Only the memory programming functionality of the JTAG ICE is supported
+by AVRDUDE. 
+For the JTAG ICE mkII, JTAG, debugWire and ISP mode are supported. 
+See below for the limitations of debugWire.
+
+   <p>The Arduino (which is very similar to the STK500 1.x) is supported via
+its own programmer type specification &ldquo;arduino&rdquo;.
+
+   <p>The AVR Dragon is supported in all modes (ISP, JTAG, HVSP, PP, debugWire). 
+When used in JTAG and debugWire mode, the AVR Dragon behaves similar to a
+JTAG ICE mkII, so all device-specific comments for that device
+will apply as well. 
+When used in ISP mode, the AVR Dragon behaves similar to an
+AVRISP mkII (or JTAG ICE mkII in ISP mode), so all device-specific
+comments will apply there. 
+In particular, the Dragon starts out with a rather fast ISP clock
+frequency, so the <code>-B </code><var>bitclock</var>
+option might be required to achieve a stable ISP communication.
+
+   <p>The USBasp ISP and USBtinyISP adapters are also supported, provided AVRDUDE
+has been compiled with libusb support. 
+They both feature simple firwmare-only USB implementations, running on
+an ATmega8 (or ATmega88), or ATtiny2313, respectively.
+
+<ul class="menu">
+<li><a accesskey="1" href="History.html#History">History</a>
+</ul>
+
+<!-- Node -->
+</body></html>
+

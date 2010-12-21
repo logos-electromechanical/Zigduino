@@ -1,0 +1,12 @@
+diff -Nwarup binutils-2.19/config/override.m4 avr32-binutils-trunk/config/override.m4
+--- config/override.m4	2008-06-18 01:14:40.000000000 +0200
++++ config/override.m4	2009-09-22 14:32:17.000000000 +0200
+@@ -42,7 +42,7 @@ dnl Or for updating the whole tree at on
+ AC_DEFUN([_GCC_AUTOCONF_VERSION_CHECK],
+ [m4_if(m4_defn([_GCC_AUTOCONF_VERSION]),
+   m4_defn([m4_PACKAGE_VERSION]), [],
+-  [m4_fatal([Please use exactly Autoconf ]_GCC_AUTOCONF_VERSION[ instead of ]m4_defn([m4_PACKAGE_VERSION])[.])])
++  [m4_errprintn([Please use exactly Autoconf ]_GCC_AUTOCONF_VERSION[ instead of ]m4_defn([m4_PACKAGE_VERSION])[.])])
+ ])
+ m4_define([AC_INIT], m4_defn([AC_INIT])[
+ _GCC_AUTOCONF_VERSION_CHECK

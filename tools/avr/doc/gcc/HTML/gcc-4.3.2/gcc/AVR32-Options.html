@@ -1,0 +1,146 @@
+<html lang="en">
+<head>
+<title>AVR32 Options - Using the GNU Compiler Collection (GCC)</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Using the GNU Compiler Collection (GCC)">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="Submodel-Options.html#Submodel-Options" title="Submodel Options">
+<link rel="prev" href="AVR-Options.html#AVR-Options" title="AVR Options">
+<link rel="next" href="Blackfin-Options.html#Blackfin-Options" title="Blackfin Options">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
+2008 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``GNU General Public License'' and ``Funding
+Free Software'', the Front-Cover texts being (a) (see below), and with
+the Back-Cover Texts being (b) (see below).  A copy of the license is
+included in the section entitled ``GNU Free Documentation License''.
+
+(a) The FSF's Front-Cover Text is:
+
+     A GNU Manual
+
+(b) The FSF's Back-Cover Text is:
+
+     You have freedom to copy and modify this GNU Manual, like GNU
+     software.  Copies published by the Free Software Foundation raise
+     funds for GNU development.-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="AVR32-Options"></a>Next:&nbsp;<a rel="next" accesskey="n" href="Blackfin-Options.html#Blackfin-Options">Blackfin Options</a>,
+Previous:&nbsp;<a rel="previous" accesskey="p" href="AVR-Options.html#AVR-Options">AVR Options</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="Submodel-Options.html#Submodel-Options">Submodel Options</a>
+<hr><br>
+</div>
+
+<h4 class="subsection">3.17.4 AVR32 Options</h4>
+
+<p><a name="index-AVR32-Options-957"></a>
+These options are defined for AVR32 implementations:
+
+     <dl>
+<dt><code>-muse-rodata-section</code><dd><a name="index-muse_002drodata_002dsection-958"></a>Use section <span class="samp">.rodata</span> for read-only data instead of <span class="samp">.text</span>.
+
+     <br><dt><code>-mhard-float</code><dd><a name="index-mhard_002dfloat-959"></a>Use floating point coprocessor instructions.
+
+     <br><dt><code>-msoft-float</code><dd><a name="index-msoft_002dfloat-960"></a>Use software floating-point library for floating-point operations.
+
+     <br><dt><code>-mforce-double-align</code><dd><a name="index-mforce_002ddouble_002dalign-961"></a>Force double-word alignment for double-word memory accesses.
+
+     <br><dt><code>-masm-addr-pseudos</code><dd><a name="index-masm_002daddr_002dpseudos-962"></a>Use assembler pseudo-instructions lda.w and call for handling direct
+addresses. (Enabled by default)
+
+     <br><dt><code>-mno-init-got</code><dd><a name="index-mno_002dinit_002dgot-963"></a>Do not initialize the GOT register before using it when compiling PIC
+code.
+
+     <br><dt><code>-mrelax</code><dd><a name="index-mrelax-964"></a>Let invoked assembler and linker do relaxing
+(Enabled by default when optimization level is &gt;1). 
+This means that when the address of symbols are known at link time,
+the linker can optimize <span class="samp">icall</span> and <span class="samp">mcall</span>
+instructions into a <span class="samp">rcall</span> instruction if possible. 
+Loading the address of a symbol can also be optimized.
+
+     <br><dt><code>-mmd-reorg-opt</code><dd><a name="index-mmd_002dreorg_002dopt-965"></a>Perform machine dependent optimizations in reorg stage.
+
+     <br><dt><code>-mpart=</code><var>part</var><dd><a name="index-mpart-966"></a>Generate code for the specified part. Permissible parts are:
+<span class="samp">ap7000</span>,
+<span class="samp">ap7001</span>,
+<span class="samp">ap7002</span>,
+<span class="samp">ap7200</span>,
+<span class="samp">uc3a0128</span>,
+<span class="samp">uc3a0256</span>,
+<span class="samp">uc3a0512</span>,
+<span class="samp">uc3a0512es</span>,
+<span class="samp">uc3a1128</span>,
+<span class="samp">uc3a1256</span>,
+<span class="samp">uc3a1512</span>,
+<span class="samp">uc3a1512es</span>,
+<span class="samp">uc3a3revd</span>,
+<span class="samp">uc3a364</span>,
+<span class="samp">uc3a364s</span>,
+<span class="samp">uc3a3128</span>,
+<span class="samp">uc3a3128s</span>,
+<span class="samp">uc3a3256</span>,
+<span class="samp">uc3a3256s</span>,
+<span class="samp">uc3b064</span>,
+<span class="samp">uc3b0128</span>,
+<span class="samp">uc3b0256</span>,
+<span class="samp">uc3b0256es</span>,
+<span class="samp">uc3b0512</span>,
+<span class="samp">uc3b0512revc</span>,
+<span class="samp">uc3b164</span>,
+<span class="samp">uc3b1128</span>,
+<span class="samp">uc3b1256</span>,
+<span class="samp">uc3b1256es</span>,
+<span class="samp">uc3b1512</span>
+<span class="samp">uc3b1512revc</span>
+<span class="samp">uc3c0512crevc</span>,
+<span class="samp">uc3c0256c</span>,
+<span class="samp">uc3c0128c</span>,
+<span class="samp">uc3c064c</span>,
+<span class="samp">uc3c1512crevc</span>,
+<span class="samp">uc3c1256c</span>,
+<span class="samp">uc3c1128c</span>,
+<span class="samp">uc3c164c</span>,
+<span class="samp">uc3c2512crevc</span>,
+<span class="samp">uc3c2256c</span>,
+<span class="samp">uc3c2128c</span>,
+<span class="samp">uc3c264c</span>,
+<span class="samp">uc3l064</span>,
+<span class="samp">uc3l032</span>,
+<span class="samp">uc3l016</span>,
+<span class="samp">uc3l064revb</span>.
+
+     <br><dt><code>-mcpu=</code><var>cpu-type</var><dd><a name="index-mcpu-967"></a>Same as -mpart. Obsolete.
+
+     <br><dt><code>-march=</code><var>arch</var><dd><a name="index-march-968"></a>Generate code for the specified architecture. Permissible architectures are:
+<span class="samp">ap</span>, <span class="samp">uc</span> and <span class="samp">ucr2</span>.
+
+     <br><dt><code>-mfast-float</code><dd><a name="index-mfast_002dfloat-969"></a>Enable fast floating-point library that does not conform to IEEE-754 but is still good enough
+for most applications. The fast floating-point library does not round to the nearest even
+but away from zero. Enabled by default if the -funsafe-math-optimizations switch is specified.
+
+     <br><dt><code>-mimm-in-const-pool</code><dd><a name="index-mimm_002din_002dconst_002dpool-970"></a>Put large immediates in constant pool. This is enabled by default for archs with insn-cache. 
+</dl>
+
+ </body></html>
+

@@ -1,0 +1,137 @@
+<html lang="en">
+<head>
+<title>AVR32 Opcodes - Using as</title>
+<meta http-equiv="Content-Type" content="text/html">
+<meta name="description" content="Using as">
+<meta name="generator" content="makeinfo 4.7">
+<link title="Top" rel="start" href="index.html#Top">
+<link rel="up" href="AVR32_002dDependent.html#AVR32_002dDependent" title="AVR32-Dependent">
+<link rel="prev" href="AVR32-Directives.html#AVR32-Directives" title="AVR32 Directives">
+<link href="http://www.gnu.org/software/texinfo/" rel="generator-home" title="Texinfo Homepage">
+<!--
+This file documents the GNU Assembler "as".
+
+Copyright (C) 1991, 92, 93, 94, 95, 96, 97, 98, 99, 2000, 2001, 2002,
+2006, 2007 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.1
+or any later version published by the Free Software Foundation;
+with no Invariant Sections, with no Front-Cover Texts, and with no
+Back-Cover Texts.  A copy of the license is included in the
+section entitled ``GNU Free Documentation License''.
+
+man end-->
+<meta http-equiv="Content-Style-Type" content="text/css">
+<style type="text/css"><!--
+  pre.display { font-family:inherit }
+  pre.format  { font-family:inherit }
+  pre.smalldisplay { font-family:inherit; font-size:smaller }
+  pre.smallformat  { font-family:inherit; font-size:smaller }
+  pre.smallexample { font-size:smaller }
+  pre.smalllisp    { font-size:smaller }
+  span.sc { font-variant:small-caps }
+  span.roman { font-family: serif; font-weight: normal; } 
+--></style>
+</head>
+<body>
+<div class="node">
+<p>
+<a name="AVR32-Opcodes"></a>Previous:&nbsp;<a rel="previous" accesskey="p" href="AVR32-Directives.html#AVR32-Directives">AVR32 Directives</a>,
+Up:&nbsp;<a rel="up" accesskey="u" href="AVR32_002dDependent.html#AVR32_002dDependent">AVR32-Dependent</a>
+<hr><br>
+</div>
+
+<h4 class="subsection">9.5.4 Opcodes</h4>
+
+<p><a name="index-AVR32-opcodes-675"></a><a name="index-opcodes-for-AVR32-676"></a>
+<code>as</code> implements all the standard AVR32 opcodes.  It also
+implements several pseudo-opcodes, which are recommended to use wherever
+possible because they give the tool chain better freedom to generate
+optimal code.
+
+     
+<a name="index-_0040code_007bLDA_002eW-reg_002c-symbol_007d-pseudo-op_002c-AVR32-677"></a>
+<dl><dt><code>LDA.W</code><dd>
+     <pre class="smallexample">                  lda.w   <var>reg</var>, <var>symbol</var>
+     </pre>
+     <p>This instruction will load the address of <var>symbol</var> into
+<var>reg</var>. The instruction will evaluate to one of the following,
+depending on the relative distance to the symbol, the relative distance
+to the constant pool and whether the <code>--pic</code> option has been
+specified. If the <code>--pic</code> option has not been specified, the
+alternatives are as follows:
+     <pre class="smallexample">                  /* <var>symbol</var> evaluates to a small enough value */
+                  mov     <var>reg</var>, <var>symbol</var>
+          
+                  /* (. - <var>symbol</var>) evaluates to a small enough value */
+                  sub     <var>reg</var>, pc, . - <var>symbol</var>
+          
+                  /* Constant pool is close enough */
+                  lddpc   <var>reg</var>, <var>cpent</var>
+                  ...
+          <var>cpent</var>:
+                  .long   <var>symbol</var>
+          
+                  /* Otherwise (not implemented yet, probably not necessary) */
+                  mov     <var>reg</var>, lo(<var>symbol</var>)
+                  orh     <var>reg</var>, hi(<var>symbol</var>)
+     </pre>
+     <p>If the <code>--pic</code> option has been specified, the alternatives are as
+follows:
+     <pre class="smallexample">                  /* (. - <var>symbol</var>) evaluates to a small enough value */
+                  sub     <var>reg</var>, pc, . - <var>symbol</var>
+          
+                  /* If <code>--linkrelax</code> not specified */
+                  ld.w    <var>reg</var>, r6[<var>symbol</var>@got]
+          
+                  /* Otherwise */
+                  mov     <var>reg</var>, <var>symbol</var>@got / 4
+                  ld.w    <var>reg</var>, r6[<var>reg</var> &lt;&lt; 2]
+     </pre>
+     <p>If <var>symbol</var> is not defined in the same file and section as the
+<code>LDA.W</code> instruction, the most pessimistic alternative of the
+above is selected. The linker may convert it back into the most
+optimal alternative when the final value of all symbols is known.
+
+     <p><a name="index-_0040code_007bCALL-symbol_007d-pseudo-op_002c-AVR32-678"></a><br><dt><code>CALL</code><dd>
+     <pre class="smallexample">                  call    <var>symbol</var>
+     </pre>
+     <p>This instruction will insert code to call the subroutine identified by
+<var>symbol</var>. It will evaluate to one of the following, depending on
+the relative distance to the symbol as well as the <code>--linkrelax</code>
+and <code>--pic</code> command-line options.
+
+     <p>If <var>symbol</var> is defined in the same section and input file, and the
+distance is small enough, an <code>rcall</code> instruction is inserted:
+     <pre class="smallexample">                  rcall   <var>symbol</var>
+     </pre>
+     <p>Otherwise, if the <code>--pic</code> option has not been specified:
+     <pre class="smallexample">                  mcall   <var>cpent</var>
+                  ...
+          <var>cpent</var>:
+                  .long   <var>symbol</var>
+     </pre>
+     <p>Finally, if nothing else fits and the <code>--pic</code> option has been
+specified, the assembler will indirect the call through the Global
+Offset Table:
+     <pre class="smallexample">                  /* If <code>--linkrelax</code> not specified */
+                  mcall   r6[<var>symbol</var>@got]
+          
+                  /* If <code>--linkrelax</code> specified */
+                  mov     lr, <var>symbol</var>@got / 4
+                  ld.w    lr, r6[lr &lt;&lt; 2]
+                  icall   lr
+     </pre>
+     <p>The linker, after determining the final value of <var>symbol</var>, may
+convert any of these into more optimal alternatives. This includes
+deleting any superfluous constant pool- and GOT-entries.
+
+   </dl>
+
+<!-- Copyright 2005 -->
+<!-- Free Software Foundation, Inc. -->
+<!-- This is part of the GAS manual. -->
+<!-- For copying conditions, see the file as.texinfo. -->
+</body></html>
+

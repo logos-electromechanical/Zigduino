@@ -1,0 +1,10 @@
+--- gcc/config/avr32/lib1funcs.S	2009-03-21 02:48:42.000000000 +0000
++++ gcc/config/avr32/lib1funcs.S	2009-03-30 18:46:16.000000000 +0100
+@@ -2806,6 +2806,7 @@
+         lsl     r11,8                   /* check mantissa */
+         movne   r11, -1                 /* Return NaN */
+         moveq   r11, r10                /* Return inf */
++        mov     r10, 0
+         rjmp    __extendsfdf_return_op1
+ #endif                  
+  

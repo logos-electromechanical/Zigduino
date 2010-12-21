@@ -1,0 +1,12 @@
+diff -x .svn -x etc -x binary -x autom4te.cache -Narup newlib-1.16.0/newlib/acinclude.m4 newlib/newlib/acinclude.m4
+--- newlib/acinclude.m4	2007-12-19 15:36:26.000000000 -0700
++++ newlib/acinclude.m4	2009-01-05 17:44:07.597949900 -0700
+@@ -2,7 +2,7 @@ dnl This provides configure definitions 
+ dnl configure.in files.
+ 
+ AC_DEFUN([DEF_NEWLIB_VERSION],
+-m4_define([NEWLIB_VERSION],[1.16.0]))
++m4_define([NEWLIB_VERSION],[1.16.0 WinAVR 20100110]))
+ 
+ dnl Basic newlib configury.  This calls basic introductory stuff,
+ dnl including AM_INIT_AUTOMAKE and AC_CANONICAL_HOST.  It also runs
