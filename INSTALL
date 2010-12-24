@@ -1,0 +1,21 @@
+(c) Logos Electromechanical LLC 2010
+Licensed under CC-BY-SA 3.0 
+
+These installation instructions are for Windows, but other than the references to WinAVR,
+they should work for all platforms.
+
+To install under Windows:
+
+	- Download the zipball from: 
+	https://github.com/logos-electromechanical/Zigduino/zipball/master
+	- Unzip the archive in your arduino-0021/hardware directory.
+	- Restart the Arduino IDE. There will be a new entry in the boards sub-menu
+	- Download the IEEE 802.15.4 MAC library from Atmel 
+	(http://atmel.com/dyn/products/tools_card.asp?tool_id=4675) and unpack it to a 
+	convenient location. 
+	- Copy the contents of the MAC_v_2_4_2 directory over the MAC installation directory.
+	This puts the board definition files in the correct place
+	
+On non-Windows platforms, don't unpack the tools/avr directory of the archive. You will 
+need to install avr-gcc-4.3.2 or later and avr-libc-1.6.7 or later in order to compile
+for the Atmega128RFA1
