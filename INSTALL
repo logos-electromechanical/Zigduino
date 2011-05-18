@@ -8,7 +8,7 @@ To install under Windows:
 
 	- Download the zipball from: 
 	https://github.com/logos-electromechanical/Zigduino/zipball/master
-	- Unzip the archive in your arduino-0021/hardware directory.
+	- Unzip the archive in your arduino-0018/hardware directory.
 	- Restart the Arduino IDE. There will be a new entry in the boards sub-menu
 	- Download the IEEE 802.15.4 MAC library from Atmel 
 	(http://atmel.com/dyn/products/tools_card.asp?tool_id=4675) and unpack it to a 
