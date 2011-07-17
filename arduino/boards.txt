@@ -99,7 +99,7 @@ mega.build.core=arduino
 
 zigduino.name=Zigduino
 
-zigduino.upload.protocol=stk500v1
+zigduino.upload.protocol=arduino
 zigduino.upload.maximum_size=126976
 zigduino.upload.speed=57600
 
