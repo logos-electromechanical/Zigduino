@@ -69,7 +69,7 @@ extern "C"{
 #define INTERNAL_16		3 // Sets reference to 1 LSB precision 1.6V
 #define INTERNAL_15		2 // Sets reference to 1.5V
 #define INTERNAL		INTERNAL_16
-#else `
+#else
 #define INTERNAL 3
 
 #define DEFAULT 1

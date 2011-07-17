@@ -32,7 +32,7 @@
 #include "WConstants.h"
 #include "wiring_private.h"
 
-volatile static voidFuncPtr intFunc[EXTERNAL_NUM_INTERRUPTS];
+static volatile voidFuncPtr intFunc[EXTERNAL_NUM_INTERRUPTS];
 // volatile static voidFuncPtr twiIntFunc;
 
 #if defined(__AVR_ATmega8__)

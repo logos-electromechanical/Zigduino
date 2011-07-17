@@ -50,20 +50,20 @@
 #define TIMER5C 16
 
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-const static uint8_t SS   = 53;
-const static uint8_t MOSI = 51;
-const static uint8_t MISO = 50;
-const static uint8_t SCK  = 52;
+static const uint8_t SS   = 53;
+static const uint8_t MOSI = 51;
+static const uint8_t MISO = 50;
+static const uint8_t SCK  = 52;
 #elif defined(__AVR_ATmega128RFA1__)
-const static uint8_t SS   = 10;
-const static uint8_t MOSI = 20;
-const static uint8_t MISO = 12;
-const static uint8_t SCK  = 13;
+static const uint8_t SS   = 10;
+static const uint8_t MOSI = 20;
+static const uint8_t MISO = 12;
+static const uint8_t SCK  = 13;
 #else
-const static uint8_t SS   = 10;
-const static uint8_t MOSI = 11;
-const static uint8_t MISO = 12;
-const static uint8_t SCK  = 13;
+static const uint8_t SS   = 10;
+static const uint8_t MOSI = 11;
+static const uint8_t MISO = 12;
+static const uint8_t SCK  = 13;
 #endif
 
 // On the ATmega1280, the addresses of some of the port registers are
