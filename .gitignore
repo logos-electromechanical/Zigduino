@@ -1,0 +1,13 @@
+arduino/bootloaders/atmega/ATmegaBOOT_168_atmega1280.hex
+arduino/bootloaders/atmega/ATmegaBOOT_168_atmega328.hex
+arduino/bootloaders/atmega/ATmegaBOOT_168_atmega328_pro_8MHz.hex
+arduino/bootloaders/atmega/ATmegaBOOT_168_diecimila.hex
+arduino/bootloaders/atmega/ATmegaBOOT_168_ng.hex
+arduino/bootloaders/atmega/ATmegaBOOT_168_pro_8MHz.hex
+arduino/bootloaders/atmega8/
+arduino/bootloaders/bt/
+arduino/bootloaders/lilypad/
+arduino/bootloaders/optiboot/
+arduino/bootloaders/stk500v2/
+arduino/cores/arduino/
+arduino/programmers.txt
