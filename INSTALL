@@ -17,5 +17,5 @@ To install under Windows:
 	This puts the board definition files in the correct place
 	
 On non-Windows platforms, don't unpack the tools/avr directory of the archive. You will 
-need to install avr-gcc-4.3.2 or later and avr-libc-1.6.7 or later in order to compile
+need to install avr-gcc-4.3.3 or later and avr-libc-1.6.7 or later in order to compile
 for the Atmega128RFA1
