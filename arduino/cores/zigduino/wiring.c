@@ -163,55 +163,30 @@ void init()
 	// work there
 	sei();
 	
-	// on the ATmega168, timer 0 is also used for fast hardware pwm
-	// (using phase-correct PWM would mean that timer 0 overflowed half as often
-	// resulting in different millis() behavior on the ATmega8 and ATmega168)
-#if !defined(__AVR_ATmega8__)
-	sbi(TCCR0A, WGM01);
-	sbi(TCCR0A, WGM00);
-#endif  
-	// set timer 0 prescale factor to 64
-#if defined(__AVR_ATmega8__)
-	sbi(TCCR0, CS01);
-	sbi(TCCR0, CS00);
-#else
+	GTCCR = 0;			// Make sure everything is free running
 	sbi(TCCR0B, CS01);
 	sbi(TCCR0B, CS00);
-#endif
 	// enable timer 0 overflow interrupt
-#if defined(__AVR_ATmega8__)
-	sbi(TIMSK, TOIE0);
-#else
 	sbi(TIMSK0, TOIE0);
-#endif
 
 	// timers 1 and 2 are used for phase-correct hardware pwm
 	// this is better for motors as it ensures an even waveform
 	// note, however, that fast pwm mode can achieve a frequency of up
 	// 8 MHz (with a 16 MHz clock) at 50% duty cycle
         
-        TCCR1B = 0;
+    TCCR1B = 0;
 
 	// set timer 1 prescale factor to 64
 	sbi(TCCR1B, CS11);
 	sbi(TCCR1B, CS10);
-	// put timer 1 in 8-bit phase correct pwm mode
+	// put timer 1 in 16-bit phase correct pwm mode
 	sbi(TCCR1A, WGM10);
 
 	// set timer 2 prescale factor to 64
-#if defined(__AVR_ATmega8__)
-	sbi(TCCR2, CS22);
-#else
 	sbi(TCCR2B, CS22);
-#endif
 	// configure timer 2 for phase correct pwm (8-bit)
-#if defined(__AVR_ATmega8__)
-	sbi(TCCR2, WGM20);
-#else
 	sbi(TCCR2A, WGM20);
-#endif
 
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_ATmega128RFA1__)
 	// set timer 3, 4, 5 prescale factor to 64
 	sbi(TCCR3B, CS31);	sbi(TCCR3B, CS30);
 	sbi(TCCR4B, CS41);	sbi(TCCR4B, CS40);
@@ -220,7 +195,6 @@ void init()
 	sbi(TCCR3A, WGM30);
 	sbi(TCCR4A, WGM40);
 	sbi(TCCR5A, WGM50);
-#endif
 
 	// set a2d prescale factor to 128
 	// 16 MHz / 128 = 125 KHz, inside the desired 50-200 KHz range.
@@ -232,16 +206,12 @@ void init()
 
 	// enable a2d conversions
 	sbi(ADCSRA, ADEN);
-#if defined(__AVR_ATmega128RFA1__)
 	PRR0 = 0;
-#endif 
+	PRR1 = 0;
 
 	// the bootloader connects pins 0 and 1 to the USART; disconnect them
 	// here so they can be used as normal digital i/o; they will be
 	// reconnected in Serial.begin()
-#if defined(__AVR_ATmega8__)
-	UCSRB = 0;
-#else
+
 	UCSR0B = 0;
-#endif
 }

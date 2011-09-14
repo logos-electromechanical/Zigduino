@@ -35,7 +35,7 @@
 #define TIMER0B 2
 #define TIMER1A 3
 #define TIMER1B 4
-#define TIMER2  5
+#define TIMER1C 5
 #define TIMER2A 6
 #define TIMER2B 7
 
@@ -49,22 +49,11 @@
 #define TIMER5B 15
 #define TIMER5C 16
 
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-static const uint8_t SS   = 53;
-static const uint8_t MOSI = 51;
-static const uint8_t MISO = 50;
-static const uint8_t SCK  = 52;
-#elif defined(__AVR_ATmega128RFA1__)
 static const uint8_t SS   = 10;
 static const uint8_t MOSI = 20;
 static const uint8_t MISO = 12;
 static const uint8_t SCK  = 13;
-#else
-static const uint8_t SS   = 10;
-static const uint8_t MOSI = 11;
-static const uint8_t MISO = 12;
-static const uint8_t SCK  = 13;
-#endif
+
 
 // On the ATmega1280, the addresses of some of the port registers are
 // greater than 255, so we can't store them in uint8_t's.
