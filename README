@@ -1,5 +1,8 @@
 THIS VERSION WORKS ONLY WITH PRE-1.0 VERSIONS OF ARDUINO.
-For 1.0 and later versions, go to https://github.com/logos-electromechanical/Zigduino-1.0 instead
+For 1.0 and later versions, go to https://github.com/logos-electromechanical/Zigduino-1.0 instead!
+
+Since 1.0 has been the state of the Arduino world for more than a year, this older version is no 
+longer being actively maintained and should be considered of primarily historical interest.
 
 (c) Logos Electromechanical LLC 2010
 Licensed under CC-BY-SA 3.0 
